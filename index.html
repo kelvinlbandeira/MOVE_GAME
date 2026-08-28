@@ -173,6 +173,7 @@ input:focus, textarea:focus, select:focus{outline:2px solid var(--brown); outlin
 .check-row .txt strong{font-size:14.5px; display:block;}
 .check-row .txt span{font-size:12.5px; color:var(--slate);}
 .check-row .txt-head{display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;}
+.task-check{color:var(--sage); font-weight:800; font-size:14px; min-width:14px;}
 .check-row .txt-head .chev{margin-left:auto; font-size:11px; color:var(--slate); transition:transform .2s;}
 .check-row .txt-head.open .chev{transform:rotate(180deg);}
 .check-row .taskdesc{
@@ -466,15 +467,11 @@ function calcPoints(c, dayConfig){
 async function computeRanking(){
   const participants = await getParticipants();
   const missions = await getMissions();
-  const rows = [];
-  for(const p of participants){
-    let total = 0;
-    for(const day of missions){
-      const c = await getCheckin(p.phone, day.n);
-      total += calcPoints(c, day);
-    }
-    rows.push({...p, total});
-  }
+  const rows = await Promise.all(participants.map(async p=>{
+    const checkins = await Promise.all(missions.map(day=>getCheckin(p.phone, day.n)));
+    const total = checkins.reduce((sum,c,i)=> sum + calcPoints(c, missions[i]), 0);
+    return {...p, total};
+  }));
   rows.sort((a,b)=> b.total - a.total);
   return rows;
 }
@@ -592,7 +589,8 @@ async function renderParticipant(){
   const missions = await getMissions();
   const totalDays = missions.length;
   const checkins = {};
-  for(const day of missions) checkins[day.n] = await getCheckin(session.phone, day.n);
+  const myCheckins = await Promise.all(missions.map(day=>getCheckin(session.phone, day.n)));
+  missions.forEach((day,i)=>{ checkins[day.n] = myCheckins[i]; });
   const total = Object.values(checkins).reduce((s,c,i)=> s + calcPoints(c, missions[i]), 0);
   const daysDone = missions.filter(d=> checkins[d.n] && (checkins[d.n].treino||checkins[d.n].alimentacao||checkins[d.n].tarefa)).length;
   const ranking = await computeRanking();
@@ -652,21 +650,21 @@ async function renderParticipant(){
         <div class="check-row">
           <input type="checkbox" id="cTreino" ${c.treino?'checked':''}>
           <div class="txt">
-            <div class="txt-head" data-toggle="descTreino"><strong>COACH VI</strong><span>+${pts.treino} pontos</span><span class="chev">▾</span></div>
+            <div class="txt-head" data-toggle="descTreino"><strong>COACH VI</strong><span class="task-check" id="checkTreino">${c.treino?'✓':''}</span><span>+${pts.treino} pontos</span><span class="chev">▾</span></div>
             <div class="taskdesc" id="descTreino">${renderTaskText(dayInfo.coachText)}</div>
           </div>
         </div>
         <div class="check-row">
           <input type="checkbox" id="cAlim" ${c.alimentacao?'checked':''}>
           <div class="txt">
-            <div class="txt-head" data-toggle="descAlim"><strong>NUTRI NÍDIA</strong><span>+${pts.alimentacao} pontos</span><span class="chev">▾</span></div>
+            <div class="txt-head" data-toggle="descAlim"><strong>NUTRI NÍDIA</strong><span class="task-check" id="checkAlim">${c.alimentacao?'✓':''}</span><span>+${pts.alimentacao} pontos</span><span class="chev">▾</span></div>
             <div class="taskdesc" id="descAlim">${renderTaskText(dayInfo.nutriText)}</div>
           </div>
         </div>
         <div class="check-row">
           <input type="checkbox" id="cTarefa" ${c.tarefa?'checked':''}>
           <div class="txt">
-            <div class="txt-head" data-toggle="descTarefa"><strong>TAREFA MOVE</strong><span>+${pts.tarefa} pontos</span><span class="chev">▾</span></div>
+            <div class="txt-head" data-toggle="descTarefa"><strong>TAREFA MOVE</strong><span class="task-check" id="checkTarefa">${c.tarefa?'✓':''}</span><span>+${pts.tarefa} pontos</span><span class="chev">▾</span></div>
             <div class="taskdesc" id="descTarefa">${renderTaskText(dayInfo.moveText)}</div>
           </div>
         </div>
@@ -730,6 +728,11 @@ async function renderParticipant(){
       target.classList.toggle('open', !isOpen);
       head.classList.toggle('open', !isOpen);
     };
+  });
+  [['cTreino','checkTreino'], ['cAlim','checkAlim'], ['cTarefa','checkTarefa']].forEach(([boxId, badgeId])=>{
+    const box = document.getElementById(boxId);
+    const badge = document.getElementById(badgeId);
+    if(box && badge) box.onchange = ()=>{ badge.textContent = box.checked ? '✓' : ''; };
   });
   document.querySelectorAll('.lane').forEach(l=>{
     l.onclick = ()=>{ currentDay = parseInt(l.dataset.day); participantTab='checkin'; render(); };
@@ -864,7 +867,20 @@ async function renderAdmin(){
             <div class="list-item" style="flex-direction:column; align-items:stretch; gap:10px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div><div class="name">${escapeHtml(p.name)}</div><div class="code">${formatPhoneDisplay(p.phone)} · senha ${p.pass}</div></div>
-                <button class="btn ghost small removeBtn" data-phone="${p.phone}">Remover</button>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn ghost small editBtn" data-phone="${p.phone}">Editar</button>
+                  <button class="btn ghost small removeBtn" data-phone="${p.phone}">Remover</button>
+                </div>
+              </div>
+              <div class="editForm" id="editForm-${p.phone}" style="display:none; flex-direction:column; gap:8px;">
+                <label>Nome</label>
+                <input type="text" class="editName" value="${escapeHtml(p.name)}">
+                <label>Celular (com DDD)</label>
+                <input type="text" class="editPhone" value="${formatPhoneDisplay(p.phone)}" inputmode="numeric">
+                <label>Senha (4 dígitos)</label>
+                <input type="text" class="editPass" value="${p.pass}" maxlength="4" inputmode="numeric">
+                <div class="editMsg"></div>
+                <button class="btn small saveEditBtn" data-original-phone="${p.phone}">Salvar edição</button>
               </div>
               <button class="btn small sendWhatsBtn" data-phone="${p.phone}" data-name="${escapeHtml(p.name)}" data-pass="${p.pass}" style="width:100%; background:#25D366;">Enviar acesso no WhatsApp</button>
             </div>
@@ -1037,7 +1053,50 @@ async function renderAdmin(){
       const phone = btn.dataset.phone;
       let list = await getParticipants();
       list = list.filter(p=>p.phone!==phone);
-      await saveParticipants(list);
+      const saved = await saveParticipants(list);
+      if(!saved){ alert('Não deu pra salvar. ' + (lastStorageError || 'Tente novamente.')); return; }
+      render();
+    };
+  });
+
+  document.querySelectorAll('.editBtn').forEach(btn=>{
+    btn.onclick = ()=>{
+      const form = document.getElementById('editForm-'+btn.dataset.phone);
+      if(form) form.style.display = form.style.display==='none' ? 'flex' : 'none';
+    };
+  });
+
+  document.querySelectorAll('.saveEditBtn').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const originalPhone = btn.dataset.originalPhone;
+      const form = document.getElementById('editForm-'+originalPhone);
+      const name = form.querySelector('.editName').value.trim();
+      const phone = normalizePhone(form.querySelector('.editPhone').value);
+      const pass = form.querySelector('.editPass').value.trim();
+      const msgEl = form.querySelector('.editMsg');
+      if(!name){ msgEl.innerHTML = `<div class="msg err">Digite o nome.</div>`; return; }
+      if(phone.length<10){ msgEl.innerHTML = `<div class="msg err">Digite um celular válido com DDD.</div>`; return; }
+      if(!/^\d{4}$/.test(pass)){ msgEl.innerHTML = `<div class="msg err">A senha precisa ter exatamente 4 dígitos.</div>`; return; }
+      const list = await getParticipants();
+      if(list.find(p=>p.phone===phone && p.phone!==originalPhone)){
+        msgEl.innerHTML = `<div class="msg err">Já existe outro acesso com esse celular.</div>`; return;
+      }
+      const idx = list.findIndex(p=>p.phone===originalPhone);
+      if(idx<0){ msgEl.innerHTML = `<div class="msg err">Participante não encontrada.</div>`; return; }
+      msgEl.innerHTML = `<div class="msg">Salvando...</div>`;
+      list[idx] = {...list[idx], name, phone, pass};
+      const saved = await saveParticipants(list);
+      if(!saved){
+        msgEl.innerHTML = `<div class="msg err">Não deu pra salvar. ${lastStorageError ? escapeHtml(lastStorageError) : 'Tente novamente.'}</div>`;
+        return;
+      }
+      if(phone !== originalPhone){
+        const missions = await getMissions();
+        await Promise.all(missions.map(async day=>{
+          const c = await getCheckin(originalPhone, day.n);
+          if(c) await setCheckin(phone, day.n, c);
+        }));
+      }
       render();
     };
   });
