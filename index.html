@@ -144,6 +144,8 @@ body{
 .lane .lbl{font-size:10px; margin-top:6px; color:var(--slate); font-weight:600;}
 .lane.locked .dot{background:var(--paper-dim); border-color:var(--line); color:var(--slate); font-size:13px;}
 .lane.locked .lbl{opacity:0.55;}
+.lane.past .dot{background:white; border-color:var(--line); color:var(--slate);}
+.lane.past .lbl{opacity:0.7;}
 
 /* ===== CARDS / SECTIONS ===== */
 .wrap{max-width:760px; margin:0 auto; padding:0 24px 80px;}
@@ -176,6 +178,28 @@ input:focus, textarea:focus, select:focus{outline:2px solid var(--brown); outlin
 .task-check{color:var(--sage); font-weight:800; font-size:14px; min-width:14px;}
 .check-row .txt-head .chev{margin-left:auto; font-size:11px; color:var(--slate); transition:transform .2s;}
 .check-row .txt-head.open .chev{transform:rotate(180deg);}
+.check-row.read-only{opacity:0.85;}
+.chev-btn{
+  margin-left:auto; font-size:11px; font-weight:700; color:var(--brown);
+  background:var(--paper-dim); padding:5px 12px; border-radius:100px; white-space:nowrap;
+}
+.task-locked-badge{
+  background:#EAF3EA; color:#2F6B2F; font-size:12.5px; font-weight:600;
+  padding:10px 14px; border-radius:10px; margin:2px 0 14px;
+}
+.partner-ig{margin-top:8px; font-size:12px;}
+.partner-ig a{color:var(--brown); font-weight:700; text-decoration:none;}
+.partner-ig a:hover{text-decoration:underline;}
+.workflow-tip{
+  background:#FFF8E8; border:1px solid #F0DFA8; color:#7A5C00; font-size:12.5px;
+  line-height:1.55; padding:12px 14px; border-radius:10px; margin:14px 0 4px;
+}
+.video-btn{
+  display:inline-flex; align-items:center; gap:6px; margin-top:14px; padding:10px 18px;
+  border-radius:100px; background:var(--ink); color:white; text-decoration:none;
+  font-family:'Inter',sans-serif; font-size:13px; font-weight:700;
+}
+.video-btn:hover{opacity:0.85;}
 .check-row .taskdesc{
   font-size:12.5px; color:var(--slate); line-height:1.55; font-weight:400;
   max-height:0; overflow:hidden; margin-top:0; transition:max-height .25s ease, margin-top .25s ease;
@@ -218,6 +242,7 @@ tr.rank1 td:first-child, tr.rank2 td:first-child, tr.rank3 td:first-child{font-w
 .medal{display:inline-block; width:20px; text-align:center;}
 
 .thumb{width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin-top:10px; display:block;}
+.thumb-admin{width:100%; max-height:420px; object-fit:contain; background:var(--paper-dim); border-radius:10px; margin-top:10px; display:block; cursor:pointer;}
 
 .two-col{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 @media(max-width:520px){.two-col{grid-template-columns:1fr;}}
@@ -329,11 +354,11 @@ tr.rank1 td:first-child, tr.rank2 td:first-child, tr.rank3 td:first-child{font-w
 <div id="app"></div>
 
 <script>
-/* ============ STORAGE HELPERS (Netlify Blobs via /api/storage) ============ */
+/* ============ STORAGE HELPERS ============ */
 let lastStorageError = '';
 async function sGet(key){
   try{
-    const r = await fetch('/api/storage?key=' + encodeURIComponent(key));
+    const r = await fetch('/api/storage?key=' + encodeURIComponent(key), { cache: 'no-store' });
     const data = await r.json();
     return (data.value === null || data.value === undefined) ? null : JSON.parse(data.value);
   }
@@ -359,7 +384,7 @@ async function sSet(key, value){
 }
 async function sList(prefix){
   try{
-    const r = await fetch('/api/storage?list=1&prefix=' + encodeURIComponent(prefix || ''));
+    const r = await fetch('/api/storage?list=1&prefix=' + encodeURIComponent(prefix || ''), { cache: 'no-store' });
     const data = await r.json();
     return data.keys || [];
   }
@@ -368,16 +393,16 @@ async function sList(prefix){
 
 /* ============ DATA MODEL ============ */
 const DAYS = [
-  {n:1, title:'START', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'ACADEMIA\nAgachamento livre: 12 → 10 → 8 → 6 repetições (aumente a carga conforme diminuir as reps)\nAfundo com halteres: 4x10 para cada perna\nStiff com halteres: 4x12\nCadeira extensora: 4x12\n\nEM CASA\nAgachamentos: 4x12\nAfundo com peso corporal: 4x15\nAgachamento com salto: 4x12\nPolichinelos: 4x20', nutriText:'Objetivo: começar prestando atenção na hidratação.\nMeta de referência: 30 ml de água por kg de peso corporal (ex: 70kg x 30ml = 2,1 litros por dia).\nO mais importante é aumentar seu consumo dentro da sua realidade, mesmo que gradualmente.', moveText:'Objetivo: criar um pequeno espaço de presença antes de entrar no ritmo do dia.\nAmanhã: acorde 30 minutos mais cedo, beba 1 copo de água em jejum e fique longe do celular durante esses 30 minutos.\nUse esse tempo para acordar com calma, respirar, se organizar ou ficar alguns minutos sem estímulos.', photo:false, deadline:'', execDate:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
-  {n:2, title:'DESACELERAR', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'Abdominal remador: 4x15\nAbdominal supra: 4x20\nPrancha baixa: 4x30s (mantenha o corpo alinhado)\nAbdominal infra: 4x15\nBurpee: 3x10', nutriText:'Objetivo: observar como você se alimenta e reduzir o beliscar automático.\nProcure preservar os horários das refeições: café da manhã → lanche → almoço → lanche → jantar.\nA ideia não é ignorar a fome, e sim perceber a diferença entre fome real e beliscar por hábito, distração ou impulso.', moveText:'Objetivo: criar um momento de pausa e presença na rotina.\n1) Meditação: realize a meditação preparada pela Terapeuta Makelle, enviada no Clube.\n2) Leitura: leia por 15 minutos — pode ser um livro que já está lendo ou começar um novo. Se permita.\nDica: se não tem o hábito de ler, use um cronômetro pra ajudar a manter o ritmo.', photo:false, deadline:'', execDate:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
-  {n:3, title:'CUIDAR', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'AMRAP 20 minutos — repita a sequência buscando o maior número de rounds completos:\n16 Reverse Lunge\n10 Apoios (joelhos no chão ou corpo reto)\n20 Elevação pélvica\n\nAMRAP = máximo de rounds possíveis dentro do tempo.', nutriText:'Objetivo: aumentar a variedade de alimentos na sua alimentação.\nAo longo do dia, consuma: 3 variedades de verduras/legumes + 2 variedades de frutas.\nA ideia é trazer mais diversidade e cores pro prato.', moveText:'Objetivo: transformar o autocuidado em um momento de presença.\nSkincare: faça sua rotina com calma em pelo menos um turno (manhã ou noite). Não é sobre os produtos, é sobre a atitude de se cuidar.\nDica manhã: sabonete facial → sérum/hidratante → FPS se houver exposição solar.\nDica noite: higiene facial → hidratação com creme ou sérum.\nHigiene do sono: confira o e-book disponível no grupo e aplique o que fizer sentido pra sua rotina.\nRegistro: envie foto ou vídeo praticando o skincare, no grupo ou nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
-  {n:4, title:'CONEXÃO', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'Afundo com elevação de pernas: 4x15 cada lado\nPerdigueiro: 4x30\nAgachamento curtinho: 4x20\nAgachamento com afundo alternando pernas: 4x10 cada lado\nJoelhos altos: 3x20', nutriText:'Objetivo: perceber que melhorar a alimentação não precisa significar cortar tudo — pequenas trocas também contam.\nFaça uma troca alimentar simples hoje:\n\nOpção doce (panquequinha): 20g aveia + 1 banana amassada + 1 ovo + canela a gosto. Frigideira ou air fryer até dourar. Se quiser, 20g de mel por cima.\n\nOpção salgada (pão de queijo): 30g polvilho azedo + 1 fatia de queijo picada + 1 ovo + sal e orégano a gosto. Air fryer ou frigideira até dourar.', moveText:'Objetivo: compartilhar o movimento e transformar uma atividade individual em conexão.\nConvide alguém para fazer o treino do dia com você — amiga, parceiro(a), mãe, irmã, filho, familiar ou qualquer pessoa que topar.\nRegistro: tire uma foto com sua dupla e envie no grupo ou publique nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
-  {n:5, title:'EXPERIMENTE', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'Abdominal cruzado: 4x20\nAbdominal sentado: 4x20\nPrancha lateral: 3x30s (para os dois lados)\nAbdominal bicicleta: 4x20', nutriText:'Objetivo: sair do automático também na alimentação.\nExperimente um alimento, ingrediente ou preparação fora do seu consumo habitual — uma fruta diferente, um legume novo, uma receita nunca feita, uma textura diferente.\nA ideia é experimentar, descobrir e ampliar.', moveText:'Objetivo: experimentar uma nova forma de movimentar o corpo.\nRealize a videoaula especial da Prof. de dança Sté. Não precisa saber dançar nem fazer os movimentos perfeitamente — a proposta é simplesmente experimentar.\nPode chamar alguém pra participar, se quiser.', photo:false, deadline:'', execDate:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
-  {n:6, title:'RENOVE', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'AMRAP 15 minutos — repita:\n6 Burpees\n20 Polichinelos\n8 Caminhadas de mãos até estender o corpo em pé\nObjetivo: o máximo de rounds completos em 15 minutos.', nutriText:'Objetivo: simplificar a alimentação com escolhas menos processadas quando possível.\nFaça pelo menos uma escolha mais simples e natural hoje.\nExemplo: em vez de pão + mortadela → pão + ovo + requeijão. Outra opção: ovo cozido amassado + 1 colher de sopa de creme de ricota light. Ou: 30–40g de atum natural.\nA proposta não é proibir alimentos, é experimentar uma escolha diferente.', moveText:'Objetivo: perceber que movimento também transforma os espaços onde vivemos.\nEscolha um ambiente da casa e faça uma mudança: organizar, limpar, reorganizar, mudar objetos de lugar, renovar um cantinho. Não precisa ser uma reforma grande — pequenas mudanças já movimentam a energia do ambiente.\nRegistro: envie uma foto do local depois da mudança, no grupo ou nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
-  {n:7, title:'O QUE TE MOVE?', mission:'Último dia! Bônus de Stories disponível: +2 pontos. O relato que mais representar o espírito da Move ganha um prêmio especial: seu nome em um look da nova coleção', coachText:'Elevação pélvica unilateral: 4x20\nBúlgaro: 4x12\nAgachamento lateral: 4x12\nAbdução lateral: 4x12\nCoice em 4 apoios: 4x20', nutriText:'Objetivo: transformar os 7 dias em um hábito que continue depois do Game.\nPense nos hábitos e experiências alimentares que você praticou nesses dias e escolha um que queira levar pra rotina.\nConte no grupo oficial qual foi e por que escolheu esse hábito.', moveText:'Objetivo: encerrar o MOVE GAME olhando pra dentro e compartilhando o que te faz seguir em frente.\nGrave um vídeo ou faça um post começando com \"O que me move é...\" e conte algo verdadeiro sobre você — uma pessoa, um sonho, uma conquista, uma dificuldade superada, sua família, seu trabalho, sua vontade de mudar.\nConte também: como o MOVE GAME te trouxe pra esse sentimento? O que movimentou aí dentro?\nRegistro: publique seu vídeo ou post conforme a missão.', photo:true, deadline:'', execDate:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
+  {n:1, title:'START', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'ACADEMIA\nAgachamento livre: 12 → 10 → 8 → 6 repetições (aumente a carga conforme diminuir as reps)\nAfundo com halteres: 4x10 para cada perna\nStiff com halteres: 4x12\nCadeira extensora: 4x12\n\nEM CASA\nAgachamentos: 4x12\nAfundo com peso corporal: 4x15\nAgachamento com salto: 4x12\nPolichinelos: 4x20', nutriText:'Objetivo: começar prestando atenção na hidratação.\nMeta de referência: 30 ml de água por kg de peso corporal (ex: 70kg x 30ml = 2,1 litros por dia).\nO mais importante é aumentar seu consumo dentro da sua realidade, mesmo que gradualmente.', moveText:'Objetivo: criar um pequeno espaço de presença antes de entrar no ritmo do dia.\nAmanhã: acorde 30 minutos mais cedo, beba 1 copo de água em jejum e fique longe do celular durante esses 30 minutos.\nUse esse tempo para acordar com calma, respirar, se organizar ou ficar alguns minutos sem estímulos.', photo:false, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
+  {n:2, title:'DESACELERAR', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'Abdominal remador: 4x15\nAbdominal supra: 4x20\nPrancha baixa: 4x30s (mantenha o corpo alinhado)\nAbdominal infra: 4x15\nBurpee: 3x10', nutriText:'Objetivo: observar como você se alimenta e reduzir o beliscar automático.\nProcure preservar os horários das refeições: café da manhã → lanche → almoço → lanche → jantar.\nA ideia não é ignorar a fome, e sim perceber a diferença entre fome real e beliscar por hábito, distração ou impulso.', moveText:'Objetivo: criar um momento de pausa e presença na rotina.\n1) Meditação: realize a meditação preparada pela Terapeuta Makelle, enviada no Clube.\n2) Leitura: leia por 15 minutos — pode ser um livro que já está lendo ou começar um novo. Se permita.\nDica: se não tem o hábito de ler, use um cronômetro pra ajudar a manter o ritmo.', photo:false, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
+  {n:3, title:'CUIDAR', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'AMRAP 20 minutos — repita a sequência buscando o maior número de rounds completos:\n16 Reverse Lunge\n10 Apoios (joelhos no chão ou corpo reto)\n20 Elevação pélvica\n\nAMRAP = máximo de rounds possíveis dentro do tempo.', nutriText:'Objetivo: aumentar a variedade de alimentos na sua alimentação.\nAo longo do dia, consuma: 3 variedades de verduras/legumes + 2 variedades de frutas.\nA ideia é trazer mais diversidade e cores pro prato.', moveText:'Objetivo: transformar o autocuidado em um momento de presença.\nSkincare: faça sua rotina com calma em pelo menos um turno (manhã ou noite). Não é sobre os produtos, é sobre a atitude de se cuidar.\nDica manhã: sabonete facial → sérum/hidratante → FPS se houver exposição solar.\nDica noite: higiene facial → hidratação com creme ou sérum.\nHigiene do sono: confira o e-book disponível no grupo e aplique o que fizer sentido pra sua rotina.\nRegistro: envie foto ou vídeo praticando o skincare, no grupo ou nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
+  {n:4, title:'CONEXÃO', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'Afundo com elevação de pernas: 4x15 cada lado\nPerdigueiro: 4x30\nAgachamento curtinho: 4x20\nAgachamento com afundo alternando pernas: 4x10 cada lado\nJoelhos altos: 3x20', nutriText:'Objetivo: perceber que melhorar a alimentação não precisa significar cortar tudo — pequenas trocas também contam.\nFaça uma troca alimentar simples hoje:\n\nOpção doce (panquequinha): 20g aveia + 1 banana amassada + 1 ovo + canela a gosto. Frigideira ou air fryer até dourar. Se quiser, 20g de mel por cima.\n\nOpção salgada (pão de queijo): 30g polvilho azedo + 1 fatia de queijo picada + 1 ovo + sal e orégano a gosto. Air fryer ou frigideira até dourar.', moveText:'Objetivo: compartilhar o movimento e transformar uma atividade individual em conexão.\nConvide alguém para fazer o treino do dia com você — amiga, parceiro(a), mãe, irmã, filho, familiar ou qualquer pessoa que topar.\nRegistro: tire uma foto com sua dupla e envie no grupo ou publique nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
+  {n:5, title:'EXPERIMENTE', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'Abdominal cruzado: 4x20\nAbdominal sentado: 4x20\nPrancha lateral: 3x30s (para os dois lados)\nAbdominal bicicleta: 4x20', nutriText:'Objetivo: sair do automático também na alimentação.\nExperimente um alimento, ingrediente ou preparação fora do seu consumo habitual — uma fruta diferente, um legume novo, uma receita nunca feita, uma textura diferente.\nA ideia é experimentar, descobrir e ampliar.', moveText:'Objetivo: experimentar uma nova forma de movimentar o corpo.\nRealize a videoaula especial da Prof. de dança Sté. Não precisa saber dançar nem fazer os movimentos perfeitamente — a proposta é simplesmente experimentar.\nPode chamar alguém pra participar, se quiser.', photo:false, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
+  {n:6, title:'RENOVE', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'AMRAP 15 minutos — repita:\n6 Burpees\n20 Polichinelos\n8 Caminhadas de mãos até estender o corpo em pé\nObjetivo: o máximo de rounds completos em 15 minutos.', nutriText:'Objetivo: simplificar a alimentação com escolhas menos processadas quando possível.\nFaça pelo menos uma escolha mais simples e natural hoje.\nExemplo: em vez de pão + mortadela → pão + ovo + requeijão. Outra opção: ovo cozido amassado + 1 colher de sopa de creme de ricota light. Ou: 30–40g de atum natural.\nA proposta não é proibir alimentos, é experimentar uma escolha diferente.', moveText:'Objetivo: perceber que movimento também transforma os espaços onde vivemos.\nEscolha um ambiente da casa e faça uma mudança: organizar, limpar, reorganizar, mudar objetos de lugar, renovar um cantinho. Não precisa ser uma reforma grande — pequenas mudanças já movimentam a energia do ambiente.\nRegistro: envie uma foto do local depois da mudança, no grupo ou nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
+  {n:7, title:'O QUE TE MOVE?', mission:'Último dia! Bônus de Stories disponível: +2 pontos. O relato que mais representar o espírito da Move ganha um prêmio especial: seu nome em um look da nova coleção', coachText:'Elevação pélvica unilateral: 4x20\nBúlgaro: 4x12\nAgachamento lateral: 4x12\nAbdução lateral: 4x12\nCoice em 4 apoios: 4x20', nutriText:'Objetivo: transformar os 7 dias em um hábito que continue depois do Game.\nPense nos hábitos e experiências alimentares que você praticou nesses dias e escolha um que queira levar pra rotina.\nConte no grupo oficial qual foi e por que escolheu esse hábito.', moveText:'Objetivo: encerrar o MOVE GAME olhando pra dentro e compartilhando o que te faz seguir em frente.\nGrave um vídeo ou faça um post começando com \"O que me move é...\" e conte algo verdadeiro sobre você — uma pessoa, um sonho, uma conquista, uma dificuldade superada, sua família, seu trabalho, sua vontade de mudar.\nConte também: como o MOVE GAME te trouxe pra esse sentimento? O que movimentou aí dentro?\nRegistro: publique seu vídeo ou post conforme a missão.', photo:true, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
 ];
 function blankDay(n){
-  return {n, title:'NOVO DIA', mission:'Descreva a missão deste dia.', coachText:'Descreva o treino da Coach Vi.', nutriText:'Descreva a orientação da Nutri Nídia.', moveText:'Descreva a Tarefa Move do dia.', photo:false, deadline:'', execDate:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}};
+  return {n, title:'NOVO DIA', mission:'Descreva a missão deste dia.', coachText:'Descreva o treino da Coach Vi.', nutriText:'Descreva a orientação da Nutri Nídia.', moveText:'Descreva a Tarefa Move do dia.', photo:false, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}};
 }
 const ADMIN_PASS = '1994';
 
@@ -395,6 +420,8 @@ async function getParticipants(){ return (await sGet('moveh:participants')) || [
 async function saveParticipants(list){ return sSet('moveh:participants', list); }
 async function getAppLink(){ return (await sGet('moveh:applink')) || ''; }
 async function saveAppLink(link){ return sSet('moveh:applink', link); }
+async function getPartners(){ return (await sGet('moveh:partners')) || {coachIg:'', nutriIg:''}; }
+async function savePartners(p){ return sSet('moveh:partners', p); }
 async function getMissions(){ return (await sGet('moveh:missions')) || DAYS; }
 async function saveMissions(m){ return sSet('moveh:missions', m); }
 async function getCheckin(code, day){ return await sGet('moveh:checkin:'+code+':'+day); }
@@ -461,6 +488,9 @@ function calcPoints(c, dayConfig){
   if(c.alimentacao) total += pts.alimentacao;
   if(c.tarefa) total += pts.tarefa;
   if(c.bonus) total += pts.bonus;
+  if(c.relampagoBonus) total += (pts.instagram || 0);
+  total -= (c.penalty || 0);
+  if(total < 0) total = 0;
   return total;
 }
 
@@ -588,6 +618,7 @@ async function renderParticipant(){
   // logged in
   const missions = await getMissions();
   const totalDays = missions.length;
+  const partners = await getPartners();
   const checkins = {};
   const myCheckins = await Promise.all(missions.map(day=>getCheckin(session.phone, day.n)));
   missions.forEach((day,i)=>{ checkins[day.n] = myCheckins[i]; });
@@ -628,43 +659,74 @@ async function renderParticipant(){
       <div id="checkinSection" style="${participantTab==='checkin'?'':'display:none;'}">
       <div class="track-wrap" style="padding:0; margin-top:20px;">
         <div class="track">
-          ${missions.map(d=>{
+          ${missions.filter(d=>!isDayLocked(d)).map(d=>{
             const done = checkins[d.n] && (checkins[d.n].treino||checkins[d.n].alimentacao||checkins[d.n].tarefa);
-            const locked = isDayLocked(d);
-            const cls = d.n===currentDay ? 'current' : (done ? 'done' : (locked ? 'locked' : ''));
-            const dotContent = locked ? '🔒' : (done && d.n!==currentDay ? '✓' : d.n);
+            const past = isDayPast(d);
+            const cls = d.n===currentDay ? 'current' : (done ? 'done' : (past ? 'past' : ''));
+            const dotContent = (done && d.n!==currentDay) ? '✓' : d.n;
             return `<div class="lane ${cls}" data-day="${d.n}"><div class="dot">${dotContent}</div><div class="lbl">D${d.n}</div></div>`;
           }).join('')}
         </div>
       </div>
 
       <div class="card">
-        <div class="eyebrow" style="color:var(--brown); font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.1em;">DIA ${currentDay} · TAREFA MOVE</div>
+        <div class="eyebrow" style="color:var(--brown); font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.1em;">DIA ${currentDay} · MOVE GAME</div>
         <h3>${escapeHtml(dayInfo.title)}</h3>
         <div class="sub">${escapeHtml(dayInfo.mission)}</div>
+        ${dayInfo.videoUrl ? `<a class="video-btn" href="${escapeHtml(dayInfo.videoUrl)}" target="_blank" rel="noopener">▶ Assistir vídeo explicativo do dia</a>` : ''}
         ${isDayLocked(dayInfo) ? `
-        <div class="msg" style="background:#EEF2FF; color:#3B4CCA; margin-top:0;">🔒 Essa tarefa libera em ${formatDateShort(dayInfo.execDate)} à meia-noite. Volta aqui nesse dia para fazer o check-in!</div>
+        <div class="msg" style="background:#EEF2FF; color:#3B4CCA; margin-top:14px;">🔒 Essa tarefa libera em ${formatDateShort(dayInfo.execDate)} à meia-noite. Volta aqui nesse dia para fazer o check-in!</div>
+        ` : isDayPast(dayInfo) ? `
+        <div class="msg" style="background:#F3F4F6; color:#374151; margin-top:14px;">📁 Esse dia já passou. Você pode conferir o que foi registrado, mas não é mais possível editar.</div>
+
+        <div class="check-row read-only">
+          <div class="txt">
+            <div class="txt-head" data-toggle="descTreinoPast"><strong>TAREFA A · COACH VI</strong><span class="task-check">${c.treino?'✓':'—'}</span><span class="chev-btn">Ver detalhes ▾</span></div>
+            <div class="taskdesc" id="descTreinoPast">${renderTaskText(dayInfo.coachText)}</div>
+          </div>
+        </div>
+        <div class="check-row read-only">
+          <div class="txt">
+            <div class="txt-head" data-toggle="descAlimPast"><strong>TAREFA B · NUTRI NÍDIA</strong><span class="task-check">${c.alimentacao?'✓':'—'}</span><span class="chev-btn">Ver detalhes ▾</span></div>
+            <div class="taskdesc" id="descAlimPast">${renderTaskText(dayInfo.nutriText)}</div>
+          </div>
+        </div>
+        <div class="check-row read-only">
+          <div class="txt">
+            <div class="txt-head" data-toggle="descTarefaPast"><strong>TAREFA C · TAREFA MOVE</strong><span class="task-check">${c.tarefa?'✓':'—'}</span><span class="chev-btn">Ver detalhes ▾</span></div>
+            <div class="taskdesc" id="descTarefaPast">${renderTaskText(dayInfo.moveText)}</div>
+          </div>
+        </div>
+        ${pts.bonus > 0 ? `<div class="check-row read-only"><div class="txt"><div class="txt-head"><strong>Bônus de Stories</strong><span class="task-check">${c.bonus?'✓':'—'}</span></div></div></div>` : ''}
+        ${c.note ? `<div class="sub" style="margin-top:12px;"><b>Observação:</b> ${escapeHtml(c.note)}</div>` : ''}
+        ${c.photo ? `<img src="${c.photo}" class="thumb">` : ''}
         ` : `
-        ${dayInfo.deadline ? `<div class="msg ${deadlinePassed?'err':'ok'}" style="margin-top:0;">${deadlinePassed?'Prazo encerrado em ':'Prazo até '}${formatDeadline(dayInfo.deadline)}</div>` : ''}
+        ${dayInfo.deadline ? `<div class="msg ${deadlinePassed?'err':'ok'}" style="margin-top:14px;">${deadlinePassed?'⏰ Prazo encerrado em ':'⏰ Prazo para fazer o check-in até '}${formatDeadline(dayInfo.deadline)}</div>` : ''}
+
+        <div class="workflow-tip">💡 Você pode salvar uma tarefa de cada vez: faça a Tarefa A e salve, volte depois pra Tarefa B, e por último a Tarefa C (que também registra sua observação e foto). Depois de salva, cada tarefa não pode mais ser alterada — e só o que estiver salvo até o prazo conta pontos.</div>
 
         <div class="check-row">
-          <input type="checkbox" id="cTreino" ${c.treino?'checked':''}>
+          <input type="checkbox" id="cTreino" ${c.treino?'checked':''} ${c.treinoLocked?'disabled':''}>
           <div class="txt">
-            <div class="txt-head" data-toggle="descTreino"><strong>COACH VI</strong><span class="task-check" id="checkTreino">${c.treino?'✓':''}</span><span>+${pts.treino} pontos</span><span class="chev">▾</span></div>
-            <div class="taskdesc" id="descTreino">${renderTaskText(dayInfo.coachText)}</div>
+            <div class="txt-head" data-toggle="descTreino"><strong>TAREFA A · COACH VI</strong><span class="task-check" id="checkTreino">${c.treino?'✓':''}</span><span>+${pts.treino} pontos</span><span class="chev-btn">Ver detalhes ▾</span></div>
+            <div class="taskdesc" id="descTreino">${renderTaskText(dayInfo.coachText)}${partners.coachIg ? `<div class="partner-ig">📸 Siga a Coach Vi: <a href="https://instagram.com/${escapeHtml(partners.coachIg.replace(/^@/,''))}" target="_blank" rel="noopener">@${escapeHtml(partners.coachIg.replace(/^@/,''))}</a></div>` : ''}</div>
           </div>
         </div>
+        ${c.treinoLocked ? `<div class="task-locked-badge">✅ Tarefa A salva — não é mais possível alterar.</div>` : `<button class="btn small saveTaskBtn" id="saveTreinoBtn">Salvar Tarefa A</button>`}
+
         <div class="check-row">
-          <input type="checkbox" id="cAlim" ${c.alimentacao?'checked':''}>
+          <input type="checkbox" id="cAlim" ${c.alimentacao?'checked':''} ${c.alimLocked?'disabled':''}>
           <div class="txt">
-            <div class="txt-head" data-toggle="descAlim"><strong>NUTRI NÍDIA</strong><span class="task-check" id="checkAlim">${c.alimentacao?'✓':''}</span><span>+${pts.alimentacao} pontos</span><span class="chev">▾</span></div>
-            <div class="taskdesc" id="descAlim">${renderTaskText(dayInfo.nutriText)}</div>
+            <div class="txt-head" data-toggle="descAlim"><strong>TAREFA B · NUTRI NÍDIA</strong><span class="task-check" id="checkAlim">${c.alimentacao?'✓':''}</span><span>+${pts.alimentacao} pontos</span><span class="chev-btn">Ver detalhes ▾</span></div>
+            <div class="taskdesc" id="descAlim">${renderTaskText(dayInfo.nutriText)}${partners.nutriIg ? `<div class="partner-ig">📸 Siga a Nutri Nídia: <a href="https://instagram.com/${escapeHtml(partners.nutriIg.replace(/^@/,''))}" target="_blank" rel="noopener">@${escapeHtml(partners.nutriIg.replace(/^@/,''))}</a></div>` : ''}</div>
           </div>
         </div>
+        ${c.alimLocked ? `<div class="task-locked-badge">✅ Tarefa B salva — não é mais possível alterar.</div>` : `<button class="btn small saveTaskBtn" id="saveAlimBtn">Salvar Tarefa B</button>`}
+
         <div class="check-row">
-          <input type="checkbox" id="cTarefa" ${c.tarefa?'checked':''}>
+          <input type="checkbox" id="cTarefa" ${c.tarefa?'checked':''} ${c.tarefaLocked?'disabled':''}>
           <div class="txt">
-            <div class="txt-head" data-toggle="descTarefa"><strong>TAREFA MOVE</strong><span class="task-check" id="checkTarefa">${c.tarefa?'✓':''}</span><span>+${pts.tarefa} pontos</span><span class="chev">▾</span></div>
+            <div class="txt-head" data-toggle="descTarefa"><strong>TAREFA C · TAREFA MOVE</strong><span class="task-check" id="checkTarefa">${c.tarefa?'✓':''}</span><span>+${pts.tarefa} pontos</span><span class="chev-btn">Ver detalhes ▾</span></div>
             <div class="taskdesc" id="descTarefa">${renderTaskText(dayInfo.moveText)}</div>
           </div>
         </div>
@@ -674,6 +736,11 @@ async function renderParticipant(){
         <div class="relampago-badge">⚡ Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa no grupo!</div>
         `}
 
+        ${c.tarefaLocked ? `
+        <div class="task-locked-badge">✅ Tarefa C salva — check-in do dia finalizado.</div>
+        ${c.note ? `<div class="sub"><b>Observação:</b> ${escapeHtml(c.note)}</div>` : ''}
+        ${c.photo ? `<img src="${c.photo}" class="thumb">` : ''}
+        ` : `
         <label>Observação (opcional)</label>
         <textarea id="cNote" placeholder="Como foi hoje?">${c.note?escapeHtml(c.note):''}</textarea>
 
@@ -682,7 +749,8 @@ async function renderParticipant(){
         <div class="sub" style="margin-top:6px; margin-bottom:0;">Aceita JPG, PNG ou WEBP. Fotos do iPhone em formato HEIC não são aceitas — troque para JPEG nas configurações da Câmera ou envie um print.</div>
         <div id="photoPreviewMsg">${c.photo ? `<img src="${c.photo}" class="thumb">` : ''}</div>
 
-        <button class="btn" id="saveCheckin">Salvar check-in do dia ${currentDay}</button>
+        <button class="btn" id="saveTarefaBtn">Salvar Tarefa C (finaliza o check-in)</button>
+        `}
         `}
         <div id="checkinMsg"></div>
       </div>
@@ -727,6 +795,8 @@ async function renderParticipant(){
       const isOpen = target.classList.contains('open');
       target.classList.toggle('open', !isOpen);
       head.classList.toggle('open', !isOpen);
+      const chevBtn = head.querySelector('.chev-btn');
+      if(chevBtn) chevBtn.textContent = !isOpen ? 'Ocultar ▲' : 'Ver detalhes ▾';
     };
   });
   [['cTreino','checkTreino'], ['cAlim','checkAlim'], ['cTarefa','checkTarefa']].forEach(([boxId, badgeId])=>{
@@ -760,29 +830,60 @@ async function renderParticipant(){
     };
   }
 
-  const saveCheckinBtn = document.getElementById('saveCheckin');
-  if(saveCheckinBtn) saveCheckinBtn.onclick = async ()=>{
-    const btn = document.getElementById('saveCheckin');
+  const saveTreinoBtn = document.getElementById('saveTreinoBtn');
+  if(saveTreinoBtn) saveTreinoBtn.onclick = async ()=>{
+    saveTreinoBtn.disabled = true; saveTreinoBtn.textContent = 'Salvando...';
+    const checked = document.getElementById('cTreino').checked;
+    const existing = (await getCheckin(session.phone, currentDay)) || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
+    const updated = {...existing, treino:checked, treinoLocked:true, updatedAt:new Date().toISOString()};
+    const saved = await setCheckin(session.phone, currentDay, updated);
+    if(!saved){
+      alert('Não deu pra salvar. ' + (lastStorageError || 'Tente novamente.'));
+      saveTreinoBtn.disabled = false; saveTreinoBtn.textContent = 'Salvar Tarefa A';
+      return;
+    }
+    render();
+  };
+
+  const saveAlimBtn = document.getElementById('saveAlimBtn');
+  if(saveAlimBtn) saveAlimBtn.onclick = async ()=>{
+    saveAlimBtn.disabled = true; saveAlimBtn.textContent = 'Salvando...';
+    const checked = document.getElementById('cAlim').checked;
+    const existing = (await getCheckin(session.phone, currentDay)) || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
+    const updated = {...existing, alimentacao:checked, alimLocked:true, updatedAt:new Date().toISOString()};
+    const saved = await setCheckin(session.phone, currentDay, updated);
+    if(!saved){
+      alert('Não deu pra salvar. ' + (lastStorageError || 'Tente novamente.'));
+      saveAlimBtn.disabled = false; saveAlimBtn.textContent = 'Salvar Tarefa B';
+      return;
+    }
+    render();
+  };
+
+  const saveTarefaBtn = document.getElementById('saveTarefaBtn');
+  if(saveTarefaBtn) saveTarefaBtn.onclick = async ()=>{
+    saveTarefaBtn.disabled = true; saveTarefaBtn.textContent = 'Salvando...';
     const msgEl = document.getElementById('checkinMsg');
-    btn.disabled = true; btn.textContent = 'Salvando...';
     msgEl.innerHTML = '';
-    const payload = {
-      ...c,
-      treino: document.getElementById('cTreino').checked,
-      alimentacao: document.getElementById('cAlim').checked,
-      tarefa: document.getElementById('cTarefa').checked,
-      note: document.getElementById('cNote').value,
+    const checked = document.getElementById('cTarefa').checked;
+    const noteEl = document.getElementById('cNote');
+    const existing = (await getCheckin(session.phone, currentDay)) || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
+    const updated = {
+      ...existing,
+      tarefa: checked,
+      tarefaLocked: true,
+      note: noteEl ? noteEl.value : (existing.note||''),
       photo: pendingPhoto,
       updatedAt: new Date().toISOString()
     };
-    const ok = await setCheckin(session.phone, currentDay, payload);
-    if(ok){
-      msgEl.innerHTML = `<div class="msg ok">Check-in do dia ${currentDay} salvo! +${calcPoints(payload, dayInfo)} pontos.</div>`;
-      setTimeout(render, 700);
-    } else {
+    const saved = await setCheckin(session.phone, currentDay, updated);
+    if(!saved){
       msgEl.innerHTML = `<div class="msg err">Não deu pra salvar agora. ${lastStorageError ? escapeHtml(lastStorageError) : 'Tente novamente.'}</div>`;
-      btn.disabled = false; btn.textContent = `Salvar check-in do dia ${currentDay}`;
+      saveTarefaBtn.disabled = false; saveTarefaBtn.textContent = 'Salvar Tarefa C (finaliza o check-in)';
+      return;
     }
+    msgEl.innerHTML = `<div class="msg ok">Tarefa C salva! Check-in do dia ${currentDay} finalizado.</div>`;
+    setTimeout(render, 700);
   };
 }
 
@@ -819,6 +920,7 @@ async function renderAdmin(){
   const ranking = await computeRanking();
   const missions = await getMissions();
   const appLink = await getAppLink();
+  const partners = await getPartners();
   const loginLog = await getLoginLog();
 
   app.innerHTML = `
@@ -832,6 +934,7 @@ async function renderAdmin(){
         <button data-tab="ranking" class="${adminActiveTab==='ranking'?'active':''}">Ranking</button>
         <button data-tab="checkins" class="${adminActiveTab==='checkins'?'active':''}">Check-ins</button>
         <button data-tab="instagram" class="${adminActiveTab==='instagram'?'active':''}">Instagram</button>
+        <button data-tab="relampago" class="${adminActiveTab==='relampago'?'active':''}">Relâmpago</button>
         <button data-tab="log" class="${adminActiveTab==='log'?'active':''}">Log</button>
       </div>
 
@@ -842,6 +945,17 @@ async function renderAdmin(){
         <input type="text" id="appLinkInput" placeholder="https://..." value="${escapeHtml(appLink)}">
         <button class="btn ghost small" id="saveLinkBtn" style="margin-top:12px;">Salvar link</button>
         <div id="linkMsg"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:20px;">Instagram dos parceiros</h3>
+        <div class="sub">Esses @ aparecem em toda tarefa de COACH VI e NUTRI NÍDIA, em todos os dias, incentivando as participantes a seguirem os parceiros.</div>
+        <label>@ do Instagram — Coach Vi</label>
+        <input type="text" id="coachIgInput" placeholder="@coachvi" value="${escapeHtml(partners.coachIg||'')}">
+        <label>@ do Instagram — Nutri Nídia</label>
+        <input type="text" id="nutriIgInput" placeholder="@nutrinidia" value="${escapeHtml(partners.nutriIg||'')}">
+        <button class="btn ghost small" id="savePartnersBtn" style="margin-top:12px;">Salvar parceiros</button>
+        <div id="partnersMsg"></div>
       </div>
 
       <div class="card">
@@ -914,6 +1028,9 @@ async function renderAdmin(){
             <div class="sub" style="margin-top:4px; margin-bottom:0;">Se preenchida, a tarefa libera sozinha à meia-noite do dia anterior.</div>
             <label>Prazo de entrega</label>
             <input type="datetime-local" class="mDeadline" value="${d.deadline||''}">
+            <label>Link do vídeo explicativo (opcional)</label>
+            <input type="text" class="mVideoUrl" placeholder="https://youtube.com/... ou link do Instagram/Drive" value="${escapeHtml(d.videoUrl||'')}">
+            <div class="sub" style="margin-top:4px; margin-bottom:0;">Aparece como um botão "Assistir vídeo explicativo" para a participante nesse dia.</div>
             <div class="check-inline">
               <input type="checkbox" class="mPhoto" id="mPhoto${d.n}" ${d.photo?'checked':''}>
               <label for="mPhoto${d.n}">Exigir foto/vídeo de registro</label>
@@ -924,6 +1041,7 @@ async function renderAdmin(){
               <div><label>Alimentação</label><input type="text" class="mPtsAlim" inputmode="numeric" value="${d.points.alimentacao}"></div>
               <div><label>Tarefa MOVE</label><input type="text" class="mPtsTarefa" inputmode="numeric" value="${d.points.tarefa}"></div>
               <div><label>Bônus de Stories</label><input type="text" class="mPtsBonus" inputmode="numeric" value="${d.points.bonus}"></div>
+              <div><label>Desafio Relâmpago</label><input type="text" class="mPtsRelampago" inputmode="numeric" value="${d.points.instagram||10}"></div>
             </div>
             <div class="mission-actions">
               <button class="btn dark small saveDayBtn" data-day="${d.n}" style="flex:1;">Salvar dia ${d.n}</button>
@@ -986,6 +1104,22 @@ async function renderAdmin(){
       </div>
       </div>
 
+      <div id="tabRelampago" style="${adminActiveTab==='relampago'?'':'display:none;'}">
+      <div class="card">
+        <h3 style="font-size:20px;">Desafios Relâmpago</h3>
+        <div class="sub">Conceda pontos extras a quem cumpriu um desafio-surpresa. Disponível apenas nos dias Relâmpago (sem bônus de Stories configurado).</div>
+        <label>Participante</label>
+        <select id="relPart">
+          <option value="">Selecione</option>
+          ${participants.map(p=>`<option value="${p.phone}">${escapeHtml(p.name)}</option>`).join('')}
+        </select>
+        <div class="tabbar" id="relDayTabs">
+          ${missions.map((d,i)=>`<button data-day="${d.n}" class="${i===0?'active':''}">Dia ${d.n}</button>`).join('')}
+        </div>
+        <div id="relDetail" class="sub" style="margin-top:14px;">Selecione uma participante para ver o status.</div>
+      </div>
+      </div>
+
       <div id="tabLog" style="${adminActiveTab==='log'?'':'display:none;'}">
       <div class="card">
         <h3 style="font-size:20px;">Log de acessos</h3>
@@ -1010,6 +1144,19 @@ async function renderAdmin(){
     }
     linkMsgEl.innerHTML = `<div class="msg ok">Link salvo!</div>`;
     setTimeout(()=>{ const m=document.getElementById('linkMsg'); if(m) m.innerHTML=''; }, 2000);
+  };
+
+  document.getElementById('savePartnersBtn').onclick = async ()=>{
+    const coachIg = document.getElementById('coachIgInput').value.trim();
+    const nutriIg = document.getElementById('nutriIgInput').value.trim();
+    const saved = await savePartners({coachIg, nutriIg});
+    const msgEl = document.getElementById('partnersMsg');
+    if(!saved){
+      msgEl.innerHTML = `<div class="msg err">Não deu pra salvar. ${lastStorageError ? escapeHtml(lastStorageError) : 'Tente novamente.'}</div>`;
+      return;
+    }
+    msgEl.innerHTML = `<div class="msg ok">Parceiros salvos!</div>`;
+    setTimeout(()=>{ const m=document.getElementById('partnersMsg'); if(m) m.innerHTML=''; }, 2000);
   };
 
   document.querySelectorAll('.sendWhatsBtn').forEach(btn=>{
@@ -1112,6 +1259,7 @@ async function renderAdmin(){
       document.getElementById('tabRanking').style.display = tab==='ranking' ? 'block' : 'none';
       document.getElementById('tabCheckins').style.display = tab==='checkins' ? 'block' : 'none';
       document.getElementById('tabInstagram').style.display = tab==='instagram' ? 'block' : 'none';
+      document.getElementById('tabRelampago').style.display = tab==='relampago' ? 'block' : 'none';
       document.getElementById('tabLog').style.display = tab==='log' ? 'block' : 'none';
       if(tab==='log') startLogAutoRefresh(); else stopLogAutoRefresh();
     };
@@ -1128,6 +1276,7 @@ async function renderAdmin(){
       const moveText = cardEl.querySelector('.mMoveText').value.trim();
       const execDate = cardEl.querySelector('.mExecDate').value;
       const deadline = cardEl.querySelector('.mDeadline').value;
+      const videoUrl = cardEl.querySelector('.mVideoUrl').value.trim();
       const photo = cardEl.querySelector('.mPhoto').checked;
       const toNum = v => { const n = parseInt(v,10); return isNaN(n) ? 0 : n; };
       const points = {
@@ -1135,10 +1284,11 @@ async function renderAdmin(){
         alimentacao: toNum(cardEl.querySelector('.mPtsAlim').value),
         tarefa: toNum(cardEl.querySelector('.mPtsTarefa').value),
         bonus: toNum(cardEl.querySelector('.mPtsBonus').value),
+        instagram: toNum(cardEl.querySelector('.mPtsRelampago').value),
       };
       const list = await getMissions();
       const idx = list.findIndex(d=>d.n===day);
-      if(idx>=0) list[idx] = {n:day, title, mission:missionText, coachText, nutriText, moveText, deadline, execDate, photo, points};
+      if(idx>=0) list[idx] = {n:day, title, mission:missionText, coachText, nutriText, moveText, deadline, execDate, videoUrl, photo, points};
       const msgEl = cardEl.querySelector('.dayMsg');
       msgEl.innerHTML = `<div class="msg">Salvando...</div>`;
       const saved = await saveMissions(list);
@@ -1191,14 +1341,33 @@ async function renderAdmin(){
     const c = await getCheckin(phone, adminSelectedDay);
     if(!c){ detailEl.innerHTML = `<div class="msg err" style="margin-top:0;">Sem check-in registrado para o dia ${adminSelectedDay}.</div>`; return; }
     const dayCfg = missions.find(d=>d.n===adminSelectedDay);
+    const missingProof = dayCfg && dayCfg.photo && !c.photo;
     detailEl.innerHTML = `
       <div style="color:var(--ink); font-size:13.5px; line-height:1.8;">
         Treino: <b>${c.treino?'✅':'—'}</b> · Alimentação: <b>${c.alimentacao?'✅':'—'}</b> · Tarefa MOVE: <b>${c.tarefa?'✅':'—'}</b> · Bônus: <b>${c.bonus?'✅':'—'}</b><br>
-        Pontos do dia: <b>${calcPoints(c, dayCfg)}</b><br>
+        Pontos do dia: <b>${calcPoints(c, dayCfg)}</b>${c.penalty ? ` <span style="color:#B3261E;">(desconto de ${c.penalty} já aplicado)</span>` : ''}<br>
         ${c.note ? `Nota: "${escapeHtml(c.note)}"<br>` : ''}
       </div>
-      ${c.photo ? `<img src="${c.photo}" class="thumb">` : ''}
+      ${missingProof ? `<div class="msg err" style="margin-top:8px;">⚠️ Esse dia exige foto/vídeo de registro, mas a participante não enviou nenhuma.</div>` : ''}
+      ${c.photo ? `<a href="${c.photo}" target="_blank" rel="noopener"><img src="${c.photo}" class="thumb-admin"></a><div class="sub" style="margin-top:4px;">Clique na foto para abrir em tamanho real numa aba nova.</div>` : ''}
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+        <label>Descontar pontos (ex: faltou foto/vídeo exigido)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="penaltyInput" inputmode="numeric" value="${c.penalty||0}" style="flex:1;">
+          <button class="btn ghost small" id="applyPenaltyBtn">Aplicar</button>
+        </div>
+        <div id="penaltyMsg"></div>
+      </div>
     `;
+    document.getElementById('applyPenaltyBtn').onclick = async ()=>{
+      const penalty = parseInt(document.getElementById('penaltyInput').value, 10) || 0;
+      const updated = {...c, penalty, updatedAt:new Date().toISOString()};
+      const penMsgEl = document.getElementById('penaltyMsg');
+      penMsgEl.innerHTML = `<div class="msg">Salvando...</div>`;
+      const saved = await setCheckin(phone, adminSelectedDay, updated);
+      if(!saved){ penMsgEl.innerHTML = `<div class="msg err">Não deu pra salvar. ${lastStorageError ? escapeHtml(lastStorageError) : 'Tente novamente.'}</div>`; return; }
+      refreshDetail();
+    };
   }
   document.getElementById('checkPart').onchange = refreshDetail;
   document.querySelectorAll('#dayTabs button').forEach(btn=>{
@@ -1260,6 +1429,58 @@ async function renderAdmin(){
       refreshIgDetail();
     };
   });
+
+  let relSelectedDay = missions.length ? missions[0].n : 1;
+  async function refreshRelDetail(){
+    const phone = document.getElementById('relPart').value;
+    const detailEl = document.getElementById('relDetail');
+    if(!phone){ detailEl.textContent = 'Selecione uma participante para ver o status.'; return; }
+    const dayCfg = missions.find(d=>d.n===relSelectedDay);
+    const bonusPts = (dayCfg && dayCfg.points && dayCfg.points.bonus) || 0;
+    const relPts = (dayCfg && dayCfg.points && dayCfg.points.instagram) || 0;
+    if(bonusPts > 0){
+      detailEl.innerHTML = `<div style="color:var(--slate); font-size:13.5px;">Este dia não é um dia Relâmpago (já tem bônus de Stories configurado).</div>`;
+      return;
+    }
+    const c = await getCheckin(phone, relSelectedDay);
+    const confirmed = !!(c && c.relampagoBonus);
+    detailEl.innerHTML = `
+      <div style="color:var(--ink); font-size:13.5px; line-height:1.8;">
+        Status: <b>${confirmed ? '✅ Concedido (+'+relPts+' pontos)' : 'Ainda não concedido'}</b>
+      </div>
+      <button class="btn ${confirmed?'ghost':'dark'} small" id="relToggleBtn" style="margin-top:10px;">${confirmed ? 'Remover pontos' : 'Conceder pontos do Desafio Relâmpago'}</button>
+    `;
+    document.getElementById('relToggleBtn').onclick = async ()=>{
+      const existing = (await getCheckin(phone, relSelectedDay)) || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
+      const updated = {...existing, relampagoBonus: !confirmed, updatedAt:new Date().toISOString()};
+      await setCheckin(phone, relSelectedDay, updated);
+      const rankTable = document.querySelector('#tabRanking table');
+      if(rankTable){
+        const freshRanking = await computeRanking();
+        rankTable.innerHTML = `
+          <tr><th></th><th>Nome</th><th>Celular</th><th>Pontos</th></tr>
+          ${freshRanking.map((r,i)=>`
+            <tr class="${i===0?'rank1':i===1?'rank2':i===2?'rank3':''}">
+              <td class="medal">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+              <td>${escapeHtml(r.name)}</td>
+              <td class="mono">${formatPhoneDisplay(r.phone)}</td>
+              <td class="mono" style="font-weight:700;">${r.total}</td>
+            </tr>
+          `).join('')}
+        `;
+      }
+      refreshRelDetail();
+    };
+  }
+  document.getElementById('relPart').onchange = refreshRelDetail;
+  document.querySelectorAll('#relDayTabs button').forEach(btn=>{
+    btn.onclick = ()=>{
+      document.querySelectorAll('#relDayTabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      relSelectedDay = parseInt(btn.dataset.day);
+      refreshRelDetail();
+    };
+  });
 }
 
 function escapeHtml(str){
@@ -1288,6 +1509,22 @@ function isDayLocked(day){
   const unlock = getUnlockDate(day);
   if(!unlock) return false;
   return new Date() < unlock;
+}
+function isDayPast(day){
+  if(!day) return false;
+  if(day.deadline){
+    const dl = new Date(day.deadline);
+    if(!isNaN(dl) && new Date() > dl) return true;
+  }
+  if(day.execDate){
+    const exec = new Date(day.execDate+'T00:00:00');
+    if(!isNaN(exec)){
+      const endOfExecDay = new Date(exec);
+      endOfExecDay.setDate(endOfExecDay.getDate()+1);
+      if(new Date() >= endOfExecDay) return true;
+    }
+  }
+  return false;
 }
 function renderTaskText(str){
   return escapeHtml(str||'').replace(/\n/g, '<br>');
