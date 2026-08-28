@@ -465,6 +465,8 @@ async function getAppLink(){ return (await sGet('moveh:applink')) || ''; }
 async function saveAppLink(link){ return sSet('moveh:applink', link); }
 async function getPartners(){ return (await sGet('moveh:partners')) || {coachIg:'', nutriIg:''}; }
 async function savePartners(p){ return sSet('moveh:partners', p); }
+async function getMotivationalMessages(){ return (await sGet('moveh:motivational')) || []; }
+async function saveMotivationalMessages(list){ return sSet('moveh:motivational', list); }
 async function getMissions(){ return (await sGet('moveh:missions')) || DAYS; }
 async function saveMissions(m){ return sSet('moveh:missions', m); }
 async function getCheckin(code, day){ return await sGet('moveh:checkin:'+code+':'+day); }
@@ -588,6 +590,7 @@ function resizeImage(file, maxW=700, quality=0.62){
 /* ============ APP STATE ============ */
 let mode = 'participant'; // participant | admin
 let session = { phone:null, name:null };
+let checkinOverride = null; // holds the most-recently-saved checkin so the very next render doesn't risk reading a stale copy from storage
 let adminAuthed = false;
 let adminActiveTab = 'acesso';
 let currentDay = 1;
@@ -663,9 +666,14 @@ async function renderParticipant(){
   const missions = await getMissions();
   const totalDays = missions.length;
   const partners = await getPartners();
+  const motivationalMessages = await getMotivationalMessages();
   const checkins = {};
   const myCheckins = await Promise.all(missions.map(day=>getCheckin(session.phone, day.n)));
   missions.forEach((day,i)=>{ checkins[day.n] = myCheckins[i]; });
+  if(checkinOverride && checkinOverride.day===currentDay && checkinOverride.phone===session.phone){
+    checkins[currentDay] = checkinOverride.data;
+    checkinOverride = null;
+  }
   const total = Object.values(checkins).reduce((s,c,i)=> s + calcPoints(c, missions[i]), 0);
   const daysDone = missions.filter(d=> checkins[d.n] && (checkins[d.n].treino||checkins[d.n].alimentacao||checkins[d.n].tarefa)).length;
   const ranking = await computeRanking();
@@ -829,7 +837,7 @@ async function renderParticipant(){
         ${c.checkinDone ? `
         <div class="checkin-done-badge">
           🎉 Check-in do dia ${currentDay} concluído! Você fez ${calcPoints(c, dayInfo)} pontos hoje.
-          <div class="checkin-done-motivation">${getMotivationalMessage(currentDay)}</div>
+          <div class="checkin-done-motivation">${getMotivationalMessage(currentDay, motivationalMessages)}</div>
         </div>
         <a class="whatsapp-share-btn" href="https://chat.whatsapp.com/FKxCFVkGdWgGOxuP0ZrqYv?mode=gi_t" target="_blank" rel="noopener">📲 Compartilhar no grupo</a>
         ` : `
@@ -969,6 +977,7 @@ async function renderParticipant(){
       saveTreinoBtn.disabled = false; saveTreinoBtn.textContent = 'Salvar Tarefa A';
       return;
     }
+    checkinOverride = {day:currentDay, phone:session.phone, data:updated};
     render();
   };
 
@@ -984,6 +993,7 @@ async function renderParticipant(){
       saveAlimBtn.disabled = false; saveAlimBtn.textContent = 'Salvar Tarefa B';
       return;
     }
+    checkinOverride = {day:currentDay, phone:session.phone, data:updated};
     render();
   };
 
@@ -1009,8 +1019,8 @@ async function renderParticipant(){
       saveTarefaBtn.disabled = false; saveTarefaBtn.textContent = 'Salvar Tarefa C';
       return;
     }
-    msgEl.innerHTML = `<div class="msg ok">Tarefa C salva!</div>`;
-    setTimeout(render, 700);
+    checkinOverride = {day:currentDay, phone:session.phone, data:updated};
+    render();
   };
 
   const finalCheckinBtn = document.getElementById('finalCheckinBtn');
@@ -1024,6 +1034,7 @@ async function renderParticipant(){
       finalCheckinBtn.disabled = false; finalCheckinBtn.textContent = `Fazer check-in do dia ${currentDay}`;
       return;
     }
+    checkinOverride = {day:currentDay, phone:session.phone, data:updated};
     render();
   };
 }
@@ -1062,6 +1073,7 @@ async function renderAdmin(){
   const missions = await getMissions();
   const appLink = await getAppLink();
   const partners = await getPartners();
+  const motivationalMessages = await getMotivationalMessages();
   const loginLog = await getLoginLog();
 
   app.innerHTML = `
@@ -1097,6 +1109,16 @@ async function renderAdmin(){
         <input type="text" id="nutriIgInput" placeholder="@nutrinidia" value="${escapeHtml(partners.nutriIg||'')}">
         <button class="btn ghost small" id="savePartnersBtn" style="margin-top:12px;">Salvar parceiros</button>
         <div id="partnersMsg"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:20px;">Mensagens motivacionais</h3>
+        <div class="sub">Uma mensagem por linha. Aparece pra participante quando ela finaliza o check-in do dia — uma frase diferente por dia, escolhida automaticamente. Deixe em branco pra usar as mensagens padrão.</div>
+        <textarea id="motivationalInput" style="min-height:160px;" placeholder="Parabéns! Você está indo muito bem. 💪
+Mais um dia concluído — sua consistência está construindo o resultado! 🔥
+Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivationalMessages||[]).join('\n'))}</textarea>
+        <button class="btn ghost small" id="saveMotivationalBtn" style="margin-top:12px;">Salvar mensagens</button>
+        <div id="motivationalMsg"></div>
       </div>
 
       <div class="card">
@@ -1318,6 +1340,19 @@ async function renderAdmin(){
     }
     msgEl.innerHTML = `<div class="msg ok">Parceiros salvos!</div>`;
     setTimeout(()=>{ const m=document.getElementById('partnersMsg'); if(m) m.innerHTML=''; }, 2000);
+  };
+
+  document.getElementById('saveMotivationalBtn').onclick = async ()=>{
+    const raw = document.getElementById('motivationalInput').value;
+    const list = raw.split('\n').map(s=>s.trim()).filter(Boolean);
+    const saved = await saveMotivationalMessages(list);
+    const msgEl = document.getElementById('motivationalMsg');
+    if(!saved){
+      msgEl.innerHTML = `<div class="msg err">Não deu pra salvar. ${lastStorageError ? escapeHtml(lastStorageError) : 'Tente novamente.'}</div>`;
+      return;
+    }
+    msgEl.innerHTML = `<div class="msg ok">Mensagens salvas!</div>`;
+    setTimeout(()=>{ const m=document.getElementById('motivationalMsg'); if(m) m.innerHTML=''; }, 2000);
   };
 
   document.querySelectorAll('.sendWhatsBtn').forEach(btn=>{
@@ -1702,16 +1737,17 @@ function isDayPast(day){
   }
   return false;
 }
-function getMotivationalMessage(day){
-  const messages = [
-    'Parabéns! Você está indo muito bem. 💪',
-    'Mais um dia concluído — sua consistência está construindo o resultado! 🔥',
-    'Você não parou hoje, e isso já é uma vitória. 👏',
-    'Cada check-in é um passo mais perto do seu objetivo. Continue assim! ✨',
-    'Orgulho de você por não desistir! Bora pro próximo dia. 🙌',
-    'Isso é disciplina em ação. Siga firme! 🚀',
-    'Você está construindo um hábito — e isso vale mais que qualquer pontuação. 🌱',
-  ];
+const DEFAULT_MOTIVATIONAL_MESSAGES = [
+  'Parabéns! Você está indo muito bem. 💪',
+  'Mais um dia concluído — sua consistência está construindo o resultado! 🔥',
+  'Você não parou hoje, e isso já é uma vitória. 👏',
+  'Cada check-in é um passo mais perto do seu objetivo. Continue assim! ✨',
+  'Orgulho de você por não desistir! Bora pro próximo dia. 🙌',
+  'Isso é disciplina em ação. Siga firme! 🚀',
+  'Você está construindo um hábito — e isso vale mais que qualquer pontuação. 🌱',
+];
+function getMotivationalMessage(day, customMessages){
+  const messages = (customMessages && customMessages.length) ? customMessages : DEFAULT_MOTIVATIONAL_MESSAGES;
   return messages[((day||0) % messages.length + messages.length) % messages.length];
 }
 function openPhotoInNewTab(dataUri){
