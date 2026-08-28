@@ -165,10 +165,13 @@ input[type=text], input[type=file], textarea, select{
 textarea{resize:vertical; min-height:60px;}
 input:focus, textarea:focus, select:focus{outline:2px solid var(--brown); outline-offset:1px;}
 
-.check-row{
-  display:flex; align-items:flex-start; gap:12px; padding:14px 0; border-top:1px solid var(--line);
+.task-block{
+  border:1.5px solid var(--line); border-radius:12px; padding:14px 16px; margin-top:14px;
 }
-.check-row:first-of-type{border-top:none;}
+.task-block:first-of-type{margin-top:18px;}
+.check-row{
+  display:flex; align-items:flex-start; gap:12px; padding:0 0 14px;
+}
 .check-row input[type=checkbox]{
   width:22px; height:22px; margin-top:2px; accent-color:var(--sage); flex-shrink:0; cursor:pointer;
 }
@@ -433,16 +436,16 @@ async function sList(prefix){
 
 /* ============ DATA MODEL ============ */
 const DAYS = [
-  {n:1, title:'START', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'ACADEMIA\nAgachamento livre: 12 → 10 → 8 → 6 repetições (aumente a carga conforme diminuir as reps)\nAfundo com halteres: 4x10 para cada perna\nStiff com halteres: 4x12\nCadeira extensora: 4x12\n\nEM CASA\nAgachamentos: 4x12\nAfundo com peso corporal: 4x15\nAgachamento com salto: 4x12\nPolichinelos: 4x20', nutriText:'Objetivo: começar prestando atenção na hidratação.\nMeta de referência: 30 ml de água por kg de peso corporal (ex: 70kg x 30ml = 2,1 litros por dia).\nO mais importante é aumentar seu consumo dentro da sua realidade, mesmo que gradualmente.', moveText:'Objetivo: criar um pequeno espaço de presença antes de entrar no ritmo do dia.\nAmanhã: acorde 30 minutos mais cedo, beba 1 copo de água em jejum e fique longe do celular durante esses 30 minutos.\nUse esse tempo para acordar com calma, respirar, se organizar ou ficar alguns minutos sem estímulos.', photo:false, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
-  {n:2, title:'DESACELERAR', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'Abdominal remador: 4x15\nAbdominal supra: 4x20\nPrancha baixa: 4x30s (mantenha o corpo alinhado)\nAbdominal infra: 4x15\nBurpee: 3x10', nutriText:'Objetivo: observar como você se alimenta e reduzir o beliscar automático.\nProcure preservar os horários das refeições: café da manhã → lanche → almoço → lanche → jantar.\nA ideia não é ignorar a fome, e sim perceber a diferença entre fome real e beliscar por hábito, distração ou impulso.', moveText:'Objetivo: criar um momento de pausa e presença na rotina.\n1) Meditação: realize a meditação preparada pela Terapeuta Makelle, enviada no Clube.\n2) Leitura: leia por 15 minutos — pode ser um livro que já está lendo ou começar um novo. Se permita.\nDica: se não tem o hábito de ler, use um cronômetro pra ajudar a manter o ritmo.', photo:false, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
-  {n:3, title:'CUIDAR', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'AMRAP 20 minutos — repita a sequência buscando o maior número de rounds completos:\n16 Reverse Lunge\n10 Apoios (joelhos no chão ou corpo reto)\n20 Elevação pélvica\n\nAMRAP = máximo de rounds possíveis dentro do tempo.', nutriText:'Objetivo: aumentar a variedade de alimentos na sua alimentação.\nAo longo do dia, consuma: 3 variedades de verduras/legumes + 2 variedades de frutas.\nA ideia é trazer mais diversidade e cores pro prato.', moveText:'Objetivo: transformar o autocuidado em um momento de presença.\nSkincare: faça sua rotina com calma em pelo menos um turno (manhã ou noite). Não é sobre os produtos, é sobre a atitude de se cuidar.\nDica manhã: sabonete facial → sérum/hidratante → FPS se houver exposição solar.\nDica noite: higiene facial → hidratação com creme ou sérum.\nHigiene do sono: confira o e-book disponível no grupo e aplique o que fizer sentido pra sua rotina.\nRegistro: envie foto ou vídeo praticando o skincare, no grupo ou nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
-  {n:4, title:'CONEXÃO', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'Afundo com elevação de pernas: 4x15 cada lado\nPerdigueiro: 4x30\nAgachamento curtinho: 4x20\nAgachamento com afundo alternando pernas: 4x10 cada lado\nJoelhos altos: 3x20', nutriText:'Objetivo: perceber que melhorar a alimentação não precisa significar cortar tudo — pequenas trocas também contam.\nFaça uma troca alimentar simples hoje:\n\nOpção doce (panquequinha): 20g aveia + 1 banana amassada + 1 ovo + canela a gosto. Frigideira ou air fryer até dourar. Se quiser, 20g de mel por cima.\n\nOpção salgada (pão de queijo): 30g polvilho azedo + 1 fatia de queijo picada + 1 ovo + sal e orégano a gosto. Air fryer ou frigideira até dourar.', moveText:'Objetivo: compartilhar o movimento e transformar uma atividade individual em conexão.\nConvide alguém para fazer o treino do dia com você — amiga, parceiro(a), mãe, irmã, filho, familiar ou qualquer pessoa que topar.\nRegistro: tire uma foto com sua dupla e envie no grupo ou publique nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
-  {n:5, title:'EXPERIMENTE', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'Abdominal cruzado: 4x20\nAbdominal sentado: 4x20\nPrancha lateral: 3x30s (para os dois lados)\nAbdominal bicicleta: 4x20', nutriText:'Objetivo: sair do automático também na alimentação.\nExperimente um alimento, ingrediente ou preparação fora do seu consumo habitual — uma fruta diferente, um legume novo, uma receita nunca feita, uma textura diferente.\nA ideia é experimentar, descobrir e ampliar.', moveText:'Objetivo: experimentar uma nova forma de movimentar o corpo.\nRealize a videoaula especial da Prof. de dança Sté. Não precisa saber dançar nem fazer os movimentos perfeitamente — a proposta é simplesmente experimentar.\nPode chamar alguém pra participar, se quiser.', photo:false, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
-  {n:6, title:'RENOVE', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'AMRAP 15 minutos — repita:\n6 Burpees\n20 Polichinelos\n8 Caminhadas de mãos até estender o corpo em pé\nObjetivo: o máximo de rounds completos em 15 minutos.', nutriText:'Objetivo: simplificar a alimentação com escolhas menos processadas quando possível.\nFaça pelo menos uma escolha mais simples e natural hoje.\nExemplo: em vez de pão + mortadela → pão + ovo + requeijão. Outra opção: ovo cozido amassado + 1 colher de sopa de creme de ricota light. Ou: 30–40g de atum natural.\nA proposta não é proibir alimentos, é experimentar uma escolha diferente.', moveText:'Objetivo: perceber que movimento também transforma os espaços onde vivemos.\nEscolha um ambiente da casa e faça uma mudança: organizar, limpar, reorganizar, mudar objetos de lugar, renovar um cantinho. Não precisa ser uma reforma grande — pequenas mudanças já movimentam a energia do ambiente.\nRegistro: envie uma foto do local depois da mudança, no grupo ou nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
-  {n:7, title:'O QUE TE MOVE?', mission:'Último dia! Bônus de Stories disponível: +2 pontos. O relato que mais representar o espírito da Move ganha um prêmio especial: seu nome em um look da nova coleção', coachText:'Elevação pélvica unilateral: 4x20\nBúlgaro: 4x12\nAgachamento lateral: 4x12\nAbdução lateral: 4x12\nCoice em 4 apoios: 4x20', nutriText:'Objetivo: transformar os 7 dias em um hábito que continue depois do Game.\nPense nos hábitos e experiências alimentares que você praticou nesses dias e escolha um que queira levar pra rotina.\nConte no grupo oficial qual foi e por que escolheu esse hábito.', moveText:'Objetivo: encerrar o MOVE GAME olhando pra dentro e compartilhando o que te faz seguir em frente.\nGrave um vídeo ou faça um post começando com \"O que me move é...\" e conte algo verdadeiro sobre você — uma pessoa, um sonho, uma conquista, uma dificuldade superada, sua família, seu trabalho, sua vontade de mudar.\nConte também: como o MOVE GAME te trouxe pra esse sentimento? O que movimentou aí dentro?\nRegistro: publique seu vídeo ou post conforme a missão.', photo:true, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
+  {n:1, title:'START', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'ACADEMIA\nAgachamento livre: 12 → 10 → 8 → 6 repetições (aumente a carga conforme diminuir as reps)\nAfundo com halteres: 4x10 para cada perna\nStiff com halteres: 4x12\nCadeira extensora: 4x12\n\nEM CASA\nAgachamentos: 4x12\nAfundo com peso corporal: 4x15\nAgachamento com salto: 4x12\nPolichinelos: 4x20', nutriText:'Objetivo: começar prestando atenção na hidratação.\nMeta de referência: 30 ml de água por kg de peso corporal (ex: 70kg x 30ml = 2,1 litros por dia).\nO mais importante é aumentar seu consumo dentro da sua realidade, mesmo que gradualmente.', moveText:'Objetivo: criar um pequeno espaço de presença antes de entrar no ritmo do dia.\nAmanhã: acorde 30 minutos mais cedo, beba 1 copo de água em jejum e fique longe do celular durante esses 30 minutos.\nUse esse tempo para acordar com calma, respirar, se organizar ou ficar alguns minutos sem estímulos.', photo:false, deadline:'', execDate:'', videoUrl:'', isRelampago:true, isInstagramDay:false, points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
+  {n:2, title:'DESACELERAR', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'Abdominal remador: 4x15\nAbdominal supra: 4x20\nPrancha baixa: 4x30s (mantenha o corpo alinhado)\nAbdominal infra: 4x15\nBurpee: 3x10', nutriText:'Objetivo: observar como você se alimenta e reduzir o beliscar automático.\nProcure preservar os horários das refeições: café da manhã → lanche → almoço → lanche → jantar.\nA ideia não é ignorar a fome, e sim perceber a diferença entre fome real e beliscar por hábito, distração ou impulso.', moveText:'Objetivo: criar um momento de pausa e presença na rotina.\n1) Meditação: realize a meditação preparada pela Terapeuta Makelle, enviada no Clube.\n2) Leitura: leia por 15 minutos — pode ser um livro que já está lendo ou começar um novo. Se permita.\nDica: se não tem o hábito de ler, use um cronômetro pra ajudar a manter o ritmo.', photo:false, deadline:'', execDate:'', videoUrl:'', isRelampago:false, isInstagramDay:true, points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
+  {n:3, title:'CUIDAR', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'AMRAP 20 minutos — repita a sequência buscando o maior número de rounds completos:\n16 Reverse Lunge\n10 Apoios (joelhos no chão ou corpo reto)\n20 Elevação pélvica\n\nAMRAP = máximo de rounds possíveis dentro do tempo.', nutriText:'Objetivo: aumentar a variedade de alimentos na sua alimentação.\nAo longo do dia, consuma: 3 variedades de verduras/legumes + 2 variedades de frutas.\nA ideia é trazer mais diversidade e cores pro prato.', moveText:'Objetivo: transformar o autocuidado em um momento de presença.\nSkincare: faça sua rotina com calma em pelo menos um turno (manhã ou noite). Não é sobre os produtos, é sobre a atitude de se cuidar.\nDica manhã: sabonete facial → sérum/hidratante → FPS se houver exposição solar.\nDica noite: higiene facial → hidratação com creme ou sérum.\nHigiene do sono: confira o e-book disponível no grupo e aplique o que fizer sentido pra sua rotina.\nRegistro: envie foto ou vídeo praticando o skincare, no grupo ou nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', isRelampago:true, isInstagramDay:false, points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
+  {n:4, title:'CONEXÃO', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'Afundo com elevação de pernas: 4x15 cada lado\nPerdigueiro: 4x30\nAgachamento curtinho: 4x20\nAgachamento com afundo alternando pernas: 4x10 cada lado\nJoelhos altos: 3x20', nutriText:'Objetivo: perceber que melhorar a alimentação não precisa significar cortar tudo — pequenas trocas também contam.\nFaça uma troca alimentar simples hoje:\n\nOpção doce (panquequinha): 20g aveia + 1 banana amassada + 1 ovo + canela a gosto. Frigideira ou air fryer até dourar. Se quiser, 20g de mel por cima.\n\nOpção salgada (pão de queijo): 30g polvilho azedo + 1 fatia de queijo picada + 1 ovo + sal e orégano a gosto. Air fryer ou frigideira até dourar.', moveText:'Objetivo: compartilhar o movimento e transformar uma atividade individual em conexão.\nConvide alguém para fazer o treino do dia com você — amiga, parceiro(a), mãe, irmã, filho, familiar ou qualquer pessoa que topar.\nRegistro: tire uma foto com sua dupla e envie no grupo ou publique nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', isRelampago:false, isInstagramDay:true, points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
+  {n:5, title:'EXPERIMENTE', mission:'Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa!', coachText:'Abdominal cruzado: 4x20\nAbdominal sentado: 4x20\nPrancha lateral: 3x30s (para os dois lados)\nAbdominal bicicleta: 4x20', nutriText:'Objetivo: sair do automático também na alimentação.\nExperimente um alimento, ingrediente ou preparação fora do seu consumo habitual — uma fruta diferente, um legume novo, uma receita nunca feita, uma textura diferente.\nA ideia é experimentar, descobrir e ampliar.', moveText:'Objetivo: experimentar uma nova forma de movimentar o corpo.\nRealize a videoaula especial da Prof. de dança Sté. Não precisa saber dançar nem fazer os movimentos perfeitamente — a proposta é simplesmente experimentar.\nPode chamar alguém pra participar, se quiser.', photo:false, deadline:'', execDate:'', videoUrl:'', isRelampago:true, isInstagramDay:false, points:{treino:10, alimentacao:10, tarefa:10, bonus:0, instagram:15}},
+  {n:6, title:'RENOVE', mission:'Bônus de Stories disponível hoje: +2 pontos.', coachText:'AMRAP 15 minutos — repita:\n6 Burpees\n20 Polichinelos\n8 Caminhadas de mãos até estender o corpo em pé\nObjetivo: o máximo de rounds completos em 15 minutos.', nutriText:'Objetivo: simplificar a alimentação com escolhas menos processadas quando possível.\nFaça pelo menos uma escolha mais simples e natural hoje.\nExemplo: em vez de pão + mortadela → pão + ovo + requeijão. Outra opção: ovo cozido amassado + 1 colher de sopa de creme de ricota light. Ou: 30–40g de atum natural.\nA proposta não é proibir alimentos, é experimentar uma escolha diferente.', moveText:'Objetivo: perceber que movimento também transforma os espaços onde vivemos.\nEscolha um ambiente da casa e faça uma mudança: organizar, limpar, reorganizar, mudar objetos de lugar, renovar um cantinho. Não precisa ser uma reforma grande — pequenas mudanças já movimentam a energia do ambiente.\nRegistro: envie uma foto do local depois da mudança, no grupo ou nos Stories marcando a Move.', photo:true, deadline:'', execDate:'', videoUrl:'', isRelampago:false, isInstagramDay:true, points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
+  {n:7, title:'O QUE TE MOVE?', mission:'Último dia! Bônus de Stories disponível: +2 pontos. O relato que mais representar o espírito da Move ganha um prêmio especial: seu nome em um look da nova coleção', coachText:'Elevação pélvica unilateral: 4x20\nBúlgaro: 4x12\nAgachamento lateral: 4x12\nAbdução lateral: 4x12\nCoice em 4 apoios: 4x20', nutriText:'Objetivo: transformar os 7 dias em um hábito que continue depois do Game.\nPense nos hábitos e experiências alimentares que você praticou nesses dias e escolha um que queira levar pra rotina.\nConte no grupo oficial qual foi e por que escolheu esse hábito.', moveText:'Objetivo: encerrar o MOVE GAME olhando pra dentro e compartilhando o que te faz seguir em frente.\nGrave um vídeo ou faça um post começando com \"O que me move é...\" e conte algo verdadeiro sobre você — uma pessoa, um sonho, uma conquista, uma dificuldade superada, sua família, seu trabalho, sua vontade de mudar.\nConte também: como o MOVE GAME te trouxe pra esse sentimento? O que movimentou aí dentro?\nRegistro: publique seu vídeo ou post conforme a missão.', photo:true, deadline:'', execDate:'', videoUrl:'', isRelampago:false, isInstagramDay:true, points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}},
 ];
 function blankDay(n){
-  return {n, title:'NOVO DIA', mission:'Descreva a missão deste dia.', coachText:'Descreva o treino da Coach Vi.', nutriText:'Descreva a orientação da Nutri Nídia.', moveText:'Descreva a Tarefa Move do dia.', photo:false, deadline:'', execDate:'', videoUrl:'', points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}};
+  return {n, title:'NOVO DIA', mission:'Descreva a missão deste dia.', coachText:'Descreva o treino da Coach Vi.', nutriText:'Descreva a orientação da Nutri Nídia.', moveText:'Descreva a Tarefa Move do dia.', photo:false, deadline:'', execDate:'', videoUrl:'', isRelampago:false, isInstagramDay:true, points:{treino:10, alimentacao:10, tarefa:10, bonus:2, instagram:15}};
 }
 const ADMIN_PASS = '1994';
 
@@ -748,6 +751,7 @@ async function renderParticipant(){
 
         <div class="workflow-tip">💡 Você pode salvar uma tarefa de cada vez: faça a Tarefa A e salve, volte depois pra Tarefa B, e por último a Tarefa C. Depois de salva, cada tarefa não pode mais ser alterada. Quando as 3 estiverem salvas, você faz o check-in do dia — só o que estiver salvo até o prazo conta pontos.</div>
 
+        <div class="task-block">
         <div class="check-row">
           <input type="checkbox" id="cTreino" ${c.treino?'checked':''} ${c.treinoLocked?'disabled':''}>
           <div class="txt">
@@ -766,7 +770,9 @@ async function renderParticipant(){
         ` : ''}
         <button class="btn small saveTaskBtn" id="saveTreinoBtn">Salvar Tarefa A</button>
         `}
+        </div>
 
+        <div class="task-block">
         <div class="check-row">
           <input type="checkbox" id="cAlim" ${c.alimentacao?'checked':''} ${c.alimLocked?'disabled':''}>
           <div class="txt">
@@ -785,7 +791,9 @@ async function renderParticipant(){
         ` : ''}
         <button class="btn small saveTaskBtn" id="saveAlimBtn">Salvar Tarefa B</button>
         `}
+        </div>
 
+        <div class="task-block">
         <div class="check-row">
           <input type="checkbox" id="cTarefa" ${c.tarefa?'checked':''} ${c.tarefaLocked?'disabled':''}>
           <div class="txt">
@@ -793,11 +801,12 @@ async function renderParticipant(){
             <div class="taskdesc" id="descTarefa">${renderTaskText(dayInfo.moveText)}</div>
           </div>
         </div>
-        ${pts.bonus > 0 ? `
+        ${dayInfo.isInstagramDay ? `
         <div class="ig-reminder">📸 Postou nos Stories? Marque <a href="https://instagram.com/usemovech" target="_blank" rel="noopener">@usemovech</a> — a equipe da Move confirma e libera os +${pts.bonus} pontos de bônus.</div>
-        ` : `
+        ` : ''}
+        ${dayInfo.isRelampago ? `
         <div class="relampago-badge">⚡ Dia Relâmpago — sem bônus de Stories hoje, fique de olho em desafios-surpresa no grupo!</div>
-        `}
+        ` : ''}
 
         ${c.tarefaLocked ? `
         <div class="task-locked-badge">✅ Tarefa C salva — não é mais possível alterar.</div>
@@ -814,6 +823,7 @@ async function renderParticipant(){
 
         <button class="btn small saveTaskBtn" id="saveTarefaBtn">Salvar Tarefa C</button>
         `}
+        </div>
 
         ${(c.treinoLocked && c.alimLocked && c.tarefaLocked) ? `
         ${c.checkinDone ? `
@@ -1162,6 +1172,16 @@ async function renderAdmin(){
             <label>Link do vídeo explicativo (opcional)</label>
             <input type="text" class="mVideoUrl" placeholder="https://youtube.com/... ou link do Instagram/Drive" value="${escapeHtml(d.videoUrl||'')}">
             <div class="sub" style="margin-top:4px; margin-bottom:0;">Aparece como um botão "Assistir vídeo explicativo" para a participante nesse dia.</div>
+            <label style="margin-top:16px;">Tipo de dia</label>
+            <div class="check-inline">
+              <input type="checkbox" class="mIsRelampago" id="mIsRelampago${d.n}" ${d.isRelampago?'checked':''}>
+              <label for="mIsRelampago${d.n}">Dia de Desafio Relâmpago</label>
+            </div>
+            <div class="check-inline">
+              <input type="checkbox" class="mIsInstagramDay" id="mIsInstagramDay${d.n}" ${d.isInstagramDay?'checked':''}>
+              <label for="mIsInstagramDay${d.n}">Dia de marcar Instagram (bônus de Stories)</label>
+            </div>
+            <div class="sub" style="margin-top:4px; margin-bottom:0;">Controla se aparece o aviso de bônus de Stories, o badge de Desafio Relâmpago, e se as abas Instagram/Relâmpago do admin liberam esse dia. Pode marcar os dois, nenhum, ou só um.</div>
             <label style="margin-top:16px;">Permitir/exigir foto ou vídeo por tarefa</label>
             <div class="check-inline">
               <input type="checkbox" class="mPhotoA" id="mPhotoA${d.n}" ${d.photoA?'checked':''}>
@@ -1418,6 +1438,8 @@ async function renderAdmin(){
       const execDate = cardEl.querySelector('.mExecDate').value;
       const deadline = cardEl.querySelector('.mDeadline').value;
       const videoUrl = cardEl.querySelector('.mVideoUrl').value.trim();
+      const isRelampago = cardEl.querySelector('.mIsRelampago').checked;
+      const isInstagramDay = cardEl.querySelector('.mIsInstagramDay').checked;
       const photoA = cardEl.querySelector('.mPhotoA').checked;
       const photoB = cardEl.querySelector('.mPhotoB').checked;
       const photo = cardEl.querySelector('.mPhoto').checked;
@@ -1431,7 +1453,7 @@ async function renderAdmin(){
       };
       const list = await getMissions();
       const idx = list.findIndex(d=>d.n===day);
-      if(idx>=0) list[idx] = {n:day, title, mission:missionText, coachText, nutriText, moveText, deadline, execDate, videoUrl, photoA, photoB, photo, points};
+      if(idx>=0) list[idx] = {n:day, title, mission:missionText, coachText, nutriText, moveText, deadline, execDate, videoUrl, isRelampago, isInstagramDay, photoA, photoB, photo, points};
       const msgEl = cardEl.querySelector('.dayMsg');
       msgEl.innerHTML = `<div class="msg">Salvando...</div>`;
       const saved = await saveMissions(list);
@@ -1541,8 +1563,8 @@ async function renderAdmin(){
     if(!phone){ detailEl.textContent = 'Selecione uma participante para ver o status.'; return; }
     const dayCfg = missions.find(d=>d.n===igSelectedDay);
     const bonusPts = (dayCfg && dayCfg.points && dayCfg.points.bonus) || 0;
-    if(bonusPts <= 0){
-      detailEl.innerHTML = `<div style="color:var(--slate); font-size:13.5px;">Este dia não tem bônus de Stories configurado (dia Relâmpago).</div>`;
+    if(!dayCfg || !dayCfg.isInstagramDay){
+      detailEl.innerHTML = `<div style="color:var(--slate); font-size:13.5px;">Este dia não está marcado como "Dia de marcar Instagram" (configure na aba Missões).</div>`;
       return;
     }
     const c = await getCheckin(phone, igSelectedDay);
@@ -1591,10 +1613,9 @@ async function renderAdmin(){
     const detailEl = document.getElementById('relDetail');
     if(!phone){ detailEl.textContent = 'Selecione uma participante para ver o status.'; return; }
     const dayCfg = missions.find(d=>d.n===relSelectedDay);
-    const bonusPts = (dayCfg && dayCfg.points && dayCfg.points.bonus) || 0;
     const relPts = (dayCfg && dayCfg.points && dayCfg.points.instagram) || 0;
-    if(bonusPts > 0){
-      detailEl.innerHTML = `<div style="color:var(--slate); font-size:13.5px;">Este dia não é um dia Relâmpago (já tem bônus de Stories configurado).</div>`;
+    if(!dayCfg || !dayCfg.isRelampago){
+      detailEl.innerHTML = `<div style="color:var(--slate); font-size:13.5px;">Este dia não está marcado como "Dia de Desafio Relâmpago" (configure na aba Missões).</div>`;
       return;
     }
     const c = await getCheckin(phone, relSelectedDay);
