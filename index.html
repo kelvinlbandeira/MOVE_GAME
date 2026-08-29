@@ -1364,7 +1364,11 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
     if(phone.length<10){ msgEl.innerHTML = `<div class="msg err">Digite um celular válido com DDD.</div>`; return; }
     if(!/^\d{4}$/.test(pass)){ msgEl.innerHTML = `<div class="msg err">A senha precisa ter exatamente 4 dígitos.</div>`; return; }
     const list = await getParticipants();
-    if(list.find(p=>p.phone===phone)){ msgEl.innerHTML = `<div class="msg err">Já existe um acesso com esse celular.</div>`; return; }
+    if(list.find(p=>p.phone===phone)){
+      msgEl.innerHTML = `<div class="msg err">Já existe um acesso com esse celular — veja a lista abaixo, ela já está aí.</div>`;
+      setTimeout(render, 1200);
+      return;
+    }
     list.push({name, phone, pass, createdAt:new Date().toISOString()});
     msgEl.innerHTML = `<div class="msg">Salvando...</div>`;
     const saved = await saveParticipants(list);
