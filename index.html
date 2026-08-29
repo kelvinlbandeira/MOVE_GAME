@@ -508,6 +508,10 @@ const ACTIVITY_LABELS = {
   task_b: {icon:'✅', text:'salvou a Tarefa B'},
   task_c: {icon:'✅', text:'salvou a Tarefa C'},
   checkin: {icon:'🎉', text:'concluiu o check-in do dia'},
+  day_removed: {icon:'🗑️', text:'ADMIN removeu o dia'},
+  day_added: {icon:'➕', text:'ADMIN adicionou um novo dia'},
+  season_ended: {icon:'🏁', text:'ADMIN encerrou a temporada'},
+  checkin_reset: {icon:'♻️', text:'ADMIN zerou o check-in do dia'},
 };
 function renderLogRows(activityLog){
   if(!activityLog || activityLog.length===0){
@@ -1574,6 +1578,7 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       endSeasonBtn.disabled = false; endSeasonBtn.textContent = `Encerrar Temporada ${currentSeason} e iniciar Temporada ${currentSeason+1}`;
       return;
     }
+    logActivity('season_ended', {name:'Admin', phone:'admin'}, {season: currentSeason});
     render();
   };
 
@@ -1794,6 +1799,7 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       list = list.filter(d=>d.n!==day);
       const saved = await saveMissions(list);
       if(!saved){ alert('Não deu pra salvar. ' + (lastStorageError || 'Tente novamente.')); return; }
+      logActivity('day_removed', {name:'Admin', phone:'admin'}, {day});
       render();
     };
   });
@@ -1805,6 +1811,7 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
     list.push(blankDay(nextN));
     const saved = await saveMissions(list);
     if(!saved){ alert('Não deu pra salvar. ' + (lastStorageError || 'Tente novamente.')); return; }
+    logActivity('day_added', {name:'Admin', phone:'admin'}, {day:nextN});
     render();
   };
 
@@ -1889,6 +1896,12 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
         </div>
         <div id="adjustmentMsg"></div>
       </div>
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+        <label>Zerar esse dia por completo</label>
+        <div class="sub" style="margin-top:0; margin-bottom:6px;">Desmarca as 3 tarefas, destrava para a participante poder refazer, e apaga observação, foto e bônus desse dia. Não afeta outros dias.</div>
+        <button class="btn ghost small" id="resetDayBtn" style="width:100%; color:#B3261E; border-color:#B3261E;">♻️ Zerar check-in do dia ${adminSelectedDay}</button>
+        <div id="resetDayMsg"></div>
+      </div>
     `;
     document.querySelectorAll('.photo-clickable').forEach(img=>{
       img.onclick = ()=> openPhotoInNewTab(img.src);
@@ -1901,6 +1914,17 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       adjMsgEl.innerHTML = `<div class="msg">Salvando...</div>`;
       const saved = await setCheckin(phone, adminSelectedDay, updated);
       if(!saved){ adjMsgEl.innerHTML = `<div class="msg err">Não deu pra salvar. ${lastStorageError ? escapeHtml(lastStorageError) : 'Tente novamente.'}</div>`; return; }
+      refreshDetail();
+    };
+    document.getElementById('resetDayBtn').onclick = async ()=>{
+      if(!confirm(`Zerar completamente o check-in do dia ${adminSelectedDay} dessa participante? Ela poderá refazer as 3 tarefas depois. Essa ação não pode ser desfeita.`)) return;
+      const resetMsgEl = document.getElementById('resetDayMsg');
+      resetMsgEl.innerHTML = `<div class="msg">Zerando...</div>`;
+      const cleared = {treino:false, alimentacao:false, tarefa:false, bonus:false, relampagoBonus:false, photo:null, photoA:null, photoB:null, note:'', updatedAt:new Date().toISOString()};
+      const saved = await setCheckin(phone, adminSelectedDay, cleared);
+      if(!saved){ resetMsgEl.innerHTML = `<div class="msg err">Não deu pra salvar. ${lastStorageError ? escapeHtml(lastStorageError) : 'Tente novamente.'}</div>`; return; }
+      const participant = participants.find(p=>p.phone===phone);
+      logActivity('checkin_reset', {name: participant?participant.name:phone, phone}, {day: adminSelectedDay});
       refreshDetail();
     };
   }
