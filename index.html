@@ -311,6 +311,32 @@ tr.rank1 td:first-child, tr.rank2 td:first-child, tr.rank3 td:first-child{font-w
 .log-row .log-name{font-weight:600; flex:1;}
 .log-row .log-phone{color:var(--slate); font-family:'IBM Plex Mono',monospace; font-size:12px;}
 .log-row .log-time{color:var(--brown); font-family:'IBM Plex Mono',monospace; font-size:12px; white-space:nowrap;}
+.feed-row{
+  padding:12px; border-bottom:1px solid var(--paper-dim); font-size:13px; line-height:1.5;
+}
+.feed-row:last-child{border-bottom:none;}
+.feed-name{font-weight:700; color:var(--ink);}
+.feed-status{color:var(--slate); font-size:12.5px; margin-top:2px;}
+.feed-status.feed-empty{color:#B3261E;}
+.feed-note{color:var(--slate); font-size:12px; font-style:italic; margin-top:4px;}
+.feed-photo-badge{
+  display:inline-block; margin-top:6px; font-size:11px; font-weight:700; color:var(--brown);
+  background:var(--paper-dim); padding:3px 9px; border-radius:100px;
+}
+.prize-row{display:flex; gap:8px; margin-top:10px; align-items:flex-start;}
+.prize-row input{margin:0;}
+.prize-row .prizePosition{flex:0 0 130px;}
+.prize-row .prizeDesc{flex:1;}
+.prizes-card{
+  background:white; border:1.5px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px;
+}
+.prize-item{
+  display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid var(--paper-dim);
+  font-size:13px;
+}
+.prize-item:first-of-type{border-top:none; padding-top:0;}
+.prize-item .prize-label{font-weight:700; color:var(--ink); flex-shrink:0;}
+.prize-item .prize-desc{color:var(--slate); text-align:right;}
 .tabbar button{
   flex-shrink:0; border:1.5px solid var(--ink); background:white; padding:8px 14px; border-radius:100px;
   font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; cursor:pointer;
@@ -342,11 +368,19 @@ tr.rank1 td:first-child, tr.rank2 td:first-child, tr.rank3 td:first-child{font-w
 .footer-note{text-align:center; color:var(--slate); font-size:11px; margin-top:30px; line-height:1.6;}
 
 .mission-card{border:1.5px solid var(--line); border-radius:14px; padding:18px; margin-top:14px; background:var(--paper);}
-.mission-card .mhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+.mission-card .mhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px;}
 .mission-card .mhead .badge{
   font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; background:var(--ink); color:white;
   padding:4px 10px; border-radius:100px;
 }
+.mhead-toggle{cursor:pointer; user-select:none; margin-bottom:0 !important;}
+.mday-reorder{display:flex; gap:4px;}
+.mday-reorder button{
+  padding:4px 9px !important; font-size:11px !important; line-height:1;
+}
+.mday-reorder button:disabled{opacity:0.3; cursor:not-allowed;}
+.mday-title{flex:1; font-weight:700; font-size:14px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.mday-body{margin-top:14px;}
 .pts-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:6px;}
 .pts-grid div{display:flex; flex-direction:column;}
 .pts-grid label{margin:0 0 4px; font-size:10.5px;}
@@ -448,6 +482,8 @@ async function getAppLink(){ return (await sGet('moveh:applink')) || ''; }
 async function saveAppLink(link){ return sSet('moveh:applink', link); }
 async function getPartners(){ return (await sGet('moveh:partners')) || {coachIg:'', nutriIg:''}; }
 async function savePartners(p){ return sSet('moveh:partners', p); }
+async function getPrizes(){ return (await sGet('moveh:prizes')) || []; }
+async function savePrizes(list){ return sSet('moveh:prizes', list); }
 async function getMotivationalMessages(){ return (await sGet('moveh:motivational')) || []; }
 async function saveMotivationalMessages(list){ return sSet('moveh:motivational', list); }
 async function getMissions(){ return (await sGet('moveh:missions')) || DAYS; }
@@ -456,24 +492,33 @@ async function getCheckin(code, day){ return await sGet('moveh:checkin:'+code+':
 async function setCheckin(code, day, data){ return sSet('moveh:checkin:'+code+':'+day, data); }
 
 /* ============ LOGIN LOG ============ */
-function renderLogRows(loginLog){
-  if(!loginLog || loginLog.length===0){
-    return `<div class="sub">Nenhum login registrado ainda.</div>`;
+const ACTIVITY_LABELS = {
+  login: {icon:'🔓', text:'entrou no app'},
+  task_a: {icon:'✅', text:'salvou a Tarefa A'},
+  task_b: {icon:'✅', text:'salvou a Tarefa B'},
+  task_c: {icon:'✅', text:'salvou a Tarefa C'},
+  checkin: {icon:'🎉', text:'concluiu o check-in do dia'},
+};
+function renderLogRows(activityLog){
+  if(!activityLog || activityLog.length===0){
+    return `<div class="sub">Nenhuma atividade registrada ainda.</div>`;
   }
-  return `<div class="log-table">` + loginLog.map(entry=>{
+  return `<div class="log-table">` + activityLog.map(entry=>{
     const d = new Date(entry.at);
     const dateStr = d.toLocaleDateString('pt-BR');
     const timeStr = d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    const label = ACTIVITY_LABELS[entry.type] || {icon:'•', text:entry.type||''};
+    const dayText = entry.day ? ` (dia ${entry.day})` : '';
     return `
       <div class="log-row">
-        <div class="log-name">${escapeHtml(entry.name)}</div>
+        <div class="log-name">${label.icon} ${escapeHtml(entry.name)} <span style="font-weight:400; color:var(--slate);">${label.text}${dayText}</span></div>
         <div class="log-phone">${formatPhoneDisplay(entry.phone)}</div>
         <div class="log-time">${dateStr} · ${timeStr}</div>
       </div>`;
   }).join('') + `</div>`;
 }
 
-async function getLoginLog(){ return (await sGet('moveh:loginlog')) || []; }
+async function getLoginLog(){ return (await sGet('moveh:activity')) || []; }
 
 let logRefreshTimer = null;
 function startLogAutoRefresh(){
@@ -481,18 +526,44 @@ function startLogAutoRefresh(){
   logRefreshTimer = setInterval(async ()=>{
     const listEl = document.getElementById('logList');
     if(!listEl) { stopLogAutoRefresh(); return; }
-    const loginLog = await getLoginLog();
-    listEl.innerHTML = renderLogRows(loginLog);
+    const activityLog = await getLoginLog();
+    listEl.innerHTML = renderLogRows(activityLog);
   }, 15000);
 }
 function stopLogAutoRefresh(){
   if(logRefreshTimer){ clearInterval(logRefreshTimer); logRefreshTimer = null; }
 }
-async function logLogin(participant){
+let rankingRefreshTimer = null;
+function startRankingAutoRefresh(){
+  stopRankingAutoRefresh();
+  rankingRefreshTimer = setInterval(async ()=>{
+    const rankTable = document.querySelector('#tabRanking table');
+    if(!rankTable) { stopRankingAutoRefresh(); return; }
+    const freshRanking = await computeRanking();
+    rankTable.innerHTML = `
+      <tr><th></th><th>Nome</th><th>Celular</th><th>Pontos</th></tr>
+      ${freshRanking.map((r,i)=>`
+        <tr class="${i===0?'rank1':i===1?'rank2':i===2?'rank3':''}">
+          <td class="medal">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+          <td>${escapeHtml(r.name)}</td>
+          <td class="mono">${formatPhoneDisplay(r.phone)}</td>
+          <td class="mono" style="font-weight:700;">${r.total}</td>
+        </tr>
+      `).join('')}
+    `;
+  }, 20000);
+}
+function stopRankingAutoRefresh(){
+  if(rankingRefreshTimer){ clearInterval(rankingRefreshTimer); rankingRefreshTimer = null; }
+}
+async function logActivity(type, participant, extra){
   const log = await getLoginLog();
-  log.unshift({ name:participant.name, phone:participant.phone, at:new Date().toISOString() });
+  log.unshift({ type, name:participant.name, phone:participant.phone, day: extra && extra.day, at:new Date().toISOString() });
   if(log.length > 300) log.length = 300;
-  await sSet('moveh:loginlog', log);
+  await sSet('moveh:activity', log);
+}
+async function logLogin(participant){
+  return logActivity('login', participant);
 }
 
 function genCode(){
@@ -523,8 +594,8 @@ function calcPoints(c, dayConfig){
   return total;
 }
 
-async function computeRanking(){
-  const participants = await getParticipants();
+async function computeRanking(knownParticipants){
+  const participants = knownParticipants || await getParticipants();
   const missions = await getMissions();
   const rows = await Promise.all(participants.map(async p=>{
     const checkins = await Promise.all(missions.map(day=>getCheckin(p.phone, day.n)));
@@ -574,6 +645,8 @@ function resizeImage(file, maxW=700, quality=0.62){
 let mode = 'participant'; // participant | admin
 let session = { phone:null, name:null };
 let checkinOverride = null; // holds the most-recently-saved checkin so the very next render doesn't risk reading a stale copy from storage
+let participantsOverride = null; // holds the most-recently-saved participants list so admin sees instant updates
+let expandedDays = new Set(); // which day cards are currently expanded in the Missões tab
 
 function saveSessionLocal(s){
   try{ localStorage.setItem('moveh_session', JSON.stringify(s)); }catch(e){}
@@ -653,6 +726,7 @@ async function renderParticipant(){
   const totalDays = missions.length;
   const partners = await getPartners();
   const motivationalMessages = await getMotivationalMessages();
+  const prizes = await getPrizes();
   const checkins = {};
   const myCheckins = await Promise.all(missions.map(day=>getCheckin(session.phone, day.n)));
   missions.forEach((day,i)=>{ checkins[day.n] = myCheckins[i]; });
@@ -715,7 +789,11 @@ async function renderParticipant(){
         ${isDayLocked(dayInfo) ? `
         <div class="msg" style="background:#EEF2FF; color:#3B4CCA; margin-top:14px;">🔒 Essa tarefa libera em ${formatDateShort(dayInfo.execDate)} à meia-noite. Volta aqui nesse dia para fazer o check-in!</div>
         ` : isDayPast(dayInfo) ? `
+        ${(!c.treino && !c.alimentacao && !c.tarefa) ? `
+        <div class="msg" style="background:#FBEAEA; color:#8A2C2C; margin-top:14px;">😕 Esse dia já passou e não houve check-in registrado. Não foi possível pontuar nesse dia.</div>
+        ` : `
         <div class="msg" style="background:#F3F4F6; color:#374151; margin-top:14px;">📁 Esse dia já passou. Você pode conferir o que foi registrado, mas não é mais possível editar.</div>
+        `}
 
         <div class="check-row read-only">
           <div class="txt">
@@ -842,13 +920,24 @@ async function renderParticipant(){
       </div>
 
       <div id="rankingSection" style="${participantTab==='ranking'?'':'display:none;'}">
+      ${prizes.length ? `
+      <div class="prizes-card">
+        <h3 style="font-size:16px; margin:0 0 4px;">🏆 Prêmios</h3>
+        ${prizes.map(pz=>`
+          <div class="prize-item">
+            <div class="prize-label">${escapeHtml(pz.label)}</div>
+            <div class="prize-desc">${escapeHtml(pz.prize)}</div>
+          </div>
+        `).join('')}
+      </div>
+      ` : ''}
       <div class="rank-callout">
         <div class="num">${myPos>0?'#'+myPos:'—'}</div>
         <div class="lbl">Sua posição atual · ${total} pontos</div>
       </div>
       <div class="card">
         <h3 style="font-size:20px;">Ranking</h3>
-        <div class="sub">O pódio (top 3) fica em segredo até a Live oficial em 07/09. Aqui você acompanha sua posição.</div>
+        <div class="sub">O pódio (top 3) fica em segredo até a Live oficial em 07/09, no Instagram da Move (<a href="https://instagram.com/usemovech" target="_blank" rel="noopener">@usemovech</a>). Aqui você acompanha sua posição.</div>
         ${ranking.map((r,i)=>{
           const isYou = r.phone===session.phone;
           const isTop3 = i<3;
@@ -955,7 +1044,7 @@ async function renderParticipant(){
   if(saveTreinoBtn) saveTreinoBtn.onclick = async ()=>{
     saveTreinoBtn.disabled = true; saveTreinoBtn.textContent = 'Salvando...';
     const checked = document.getElementById('cTreino').checked;
-    const existing = (await getCheckin(session.phone, currentDay)) || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
+    const existing = c || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
     const updated = {...existing, treino:checked, treinoLocked:true, photoA: pendingPhotoA, updatedAt:new Date().toISOString()};
     const saved = await setCheckin(session.phone, currentDay, updated);
     if(!saved){
@@ -964,6 +1053,7 @@ async function renderParticipant(){
       return;
     }
     checkinOverride = {day:currentDay, phone:session.phone, data:updated};
+    logActivity('task_a', session, {day:currentDay});
     render();
   };
 
@@ -971,7 +1061,7 @@ async function renderParticipant(){
   if(saveAlimBtn) saveAlimBtn.onclick = async ()=>{
     saveAlimBtn.disabled = true; saveAlimBtn.textContent = 'Salvando...';
     const checked = document.getElementById('cAlim').checked;
-    const existing = (await getCheckin(session.phone, currentDay)) || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
+    const existing = c || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
     const updated = {...existing, alimentacao:checked, alimLocked:true, photoB: pendingPhotoB, updatedAt:new Date().toISOString()};
     const saved = await setCheckin(session.phone, currentDay, updated);
     if(!saved){
@@ -980,6 +1070,7 @@ async function renderParticipant(){
       return;
     }
     checkinOverride = {day:currentDay, phone:session.phone, data:updated};
+    logActivity('task_b', session, {day:currentDay});
     render();
   };
 
@@ -990,7 +1081,7 @@ async function renderParticipant(){
     msgEl.innerHTML = '';
     const checked = document.getElementById('cTarefa').checked;
     const noteEl = document.getElementById('cNote');
-    const existing = (await getCheckin(session.phone, currentDay)) || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
+    const existing = c || {treino:false, alimentacao:false, tarefa:false, bonus:false, photo:null, note:''};
     const updated = {
       ...existing,
       tarefa: checked,
@@ -1006,13 +1097,14 @@ async function renderParticipant(){
       return;
     }
     checkinOverride = {day:currentDay, phone:session.phone, data:updated};
+    logActivity('task_c', session, {day:currentDay});
     render();
   };
 
   const finalCheckinBtn = document.getElementById('finalCheckinBtn');
   if(finalCheckinBtn) finalCheckinBtn.onclick = async ()=>{
     finalCheckinBtn.disabled = true; finalCheckinBtn.textContent = 'Confirmando...';
-    const existing = (await getCheckin(session.phone, currentDay)) || {};
+    const existing = c || {};
     const updated = {...existing, checkinDone:true, checkinDoneAt:new Date().toISOString()};
     const saved = await setCheckin(session.phone, currentDay, updated);
     if(!saved){
@@ -1021,6 +1113,7 @@ async function renderParticipant(){
       return;
     }
     checkinOverride = {day:currentDay, phone:session.phone, data:updated};
+    logActivity('checkin', session, {day:currentDay});
     render();
   };
 }
@@ -1047,12 +1140,14 @@ async function renderAdmin(){
     return;
   }
 
-  const participants = await getParticipants();
-  const ranking = await computeRanking();
+  const participants = participantsOverride || await getParticipants();
+  participantsOverride = null;
+  const ranking = await computeRanking(participants);
   const missions = await getMissions();
   const appLink = await getAppLink();
   const partners = await getPartners();
   const motivationalMessages = await getMotivationalMessages();
+  const prizes = await getPrizes();
   const loginLog = await getLoginLog();
 
   app.innerHTML = `
@@ -1067,7 +1162,8 @@ async function renderAdmin(){
         <button data-tab="checkins" class="${adminActiveTab==='checkins'?'active':''}">Check-ins</button>
         <button data-tab="instagram" class="${adminActiveTab==='instagram'?'active':''}">Instagram</button>
         <button data-tab="relampago" class="${adminActiveTab==='relampago'?'active':''}">Relâmpago</button>
-        <button data-tab="log" class="${adminActiveTab==='log'?'active':''}">Log</button>
+        <button data-tab="premios" class="${adminActiveTab==='premios'?'active':''}">Prêmios</button>
+        <button data-tab="log" class="${adminActiveTab==='log'?'active':''}">Notificações</button>
       </div>
 
       <div id="tabAcesso" style="${adminActiveTab==='acesso'?'':'display:none;'}">
@@ -1149,12 +1245,19 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       <div class="card">
         <h3 style="font-size:20px;">Tarefas de cada dia</h3>
         <div class="sub">Edite título, missão, pontos de cada ação e o prazo de entrega. Clique em "Salvar dia" para gravar as alterações.</div>
-        ${missions.map(d=>`
+        <div class="sub" style="margin-top:6px;">Use as setinhas ▲▼ para trocar a ordem dos dias. Importante: check-ins já feitos ficam vinculados ao número do dia — trocar a ordem antes do desafio começar é seguro; no meio do desafio pode confundir quem já fez check-in.</div>
+        ${missions.map((d,idx)=>`
           <div class="mission-card" data-day="${d.n}">
-            <div class="mhead">
+            <div class="mhead mhead-toggle" data-toggle-day="${d.n}">
               <span class="badge">DIA ${d.n}</span>
-              <button class="btn ghost small removeDayBtn" data-day="${d.n}">Remover dia</button>
+              <span class="mday-title">${escapeHtml(d.title)}</span>
+              <div class="mday-reorder">
+                <button class="btn ghost small moveDayUpBtn" data-day="${d.n}" type="button" ${idx===0?'disabled':''} title="Mover para cima">▲</button>
+                <button class="btn ghost small moveDayDownBtn" data-day="${d.n}" type="button" ${idx===missions.length-1?'disabled':''} title="Mover para baixo">▼</button>
+              </div>
+              <span class="chev-btn">${expandedDays.has(d.n) ? 'Ocultar ▲' : 'Editar ▾'}</span>
             </div>
+            <div class="mday-body" data-day-body="${d.n}" style="${expandedDays.has(d.n) ? '' : 'display:none;'}">
             <label>Título da tarefa</label>
             <input type="text" class="mTitle" value="${escapeHtml(d.title)}">
             <label>Descrição da missão (intro curta)</label>
@@ -1213,8 +1316,10 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
             </div>
             <div class="mission-actions">
               <button class="btn dark small saveDayBtn" data-day="${d.n}" style="flex:1;">Salvar dia ${d.n}</button>
+              <button class="btn ghost small removeDayBtn" data-day="${d.n}">Remover dia</button>
             </div>
             <div class="dayMsg" data-day="${d.n}"></div>
+            </div>
           </div>
         `).join('')}
         <button class="btn ghost" id="addDayBtn" style="margin-top:20px;">+ Adicionar novo dia</button>
@@ -1243,16 +1348,19 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
 
       <div id="tabCheckins" style="${adminActiveTab==='checkins'?'':'display:none;'}">
       <div class="card">
-        <h3 style="font-size:20px;">Conferir check-ins</h3>
-        <label>Participante</label>
-        <select id="checkPart">
-          <option value="">Selecione</option>
-          ${participants.map(p=>`<option value="${p.phone}">${escapeHtml(p.name)}</option>`).join('')}
-        </select>
+        <h3 style="font-size:20px;">Check-ins do dia</h3>
         <div class="tabbar" id="dayTabs">
           ${missions.map((d,i)=>`<button data-day="${d.n}" class="${i===0?'active':''}">Dia ${d.n}</button>`).join('')}
         </div>
-        <div id="checkinDetail" class="sub" style="margin-top:14px;">Selecione uma participante para ver o check-in.</div>
+        <div id="checkinFeed" style="margin-top:14px;"></div>
+        <div style="margin-top:22px; padding-top:20px; border-top:1px solid var(--line);">
+          <label>Ver detalhe de uma participante específica</label>
+          <select id="checkPart">
+            <option value="">Selecione</option>
+            ${participants.map(p=>`<option value="${p.phone}">${escapeHtml(p.name)}</option>`).join('')}
+          </select>
+          <div id="checkinDetail" class="sub" style="margin-top:14px;">Selecione uma participante para ver o check-in.</div>
+        </div>
       </div>
       </div>
 
@@ -1288,10 +1396,29 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       </div>
       </div>
 
+      <div id="tabPremios" style="${adminActiveTab==='premios'?'':'display:none;'}">
+      <div class="card">
+        <h3 style="font-size:20px;">Prêmios do ranking</h3>
+        <div class="sub">Defina o prêmio de cada posição do ranking. Aparece pra todo mundo na aba Ranking — sem revelar quem está em qual posição.</div>
+        <div id="prizesList">
+          ${prizes.map((pz,i)=>`
+            <div class="prize-row" data-idx="${i}">
+              <input type="text" class="prizePosition" placeholder="Posição (ex: 1º lugar)" value="${escapeHtml(pz.label||'')}">
+              <input type="text" class="prizeDesc" placeholder="Prêmio" value="${escapeHtml(pz.prize||'')}">
+              <button class="btn ghost small removePrizeBtn" type="button">Remover</button>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn ghost small" id="addPrizeBtn" type="button" style="margin-top:12px;">+ Adicionar prêmio</button>
+        <button class="btn dark" id="savePrizesBtn" style="margin-top:12px; width:100%;">Salvar prêmios</button>
+        <div id="prizesMsg"></div>
+      </div>
+      </div>
+
       <div id="tabLog" style="${adminActiveTab==='log'?'':'display:none;'}">
       <div class="card">
-        <h3 style="font-size:20px;">Log de acessos</h3>
-        <div class="sub">Cada linha é um login de participante, mais recente primeiro. Atualiza sozinho a cada 15 segundos enquanto esta aba estiver aberta.</div>
+        <h3 style="font-size:20px;">Notificações</h3>
+        <div class="sub">Login, tarefas salvas e check-ins concluídos — mais recente primeiro. Atualiza sozinho a cada 15 segundos enquanto esta aba estiver aberta.</div>
         <div id="logList" style="margin-top:14px;">
           ${renderLogRows(loginLog)}
         </div>
@@ -1340,6 +1467,44 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
     setTimeout(()=>{ const m=document.getElementById('motivationalMsg'); if(m) m.innerHTML=''; }, 2000);
   };
 
+  function wirePrizeRemoveBtn(row){
+    const btn = row.querySelector('.removePrizeBtn');
+    if(btn) btn.onclick = ()=> row.remove();
+  }
+  document.querySelectorAll('.prize-row').forEach(wirePrizeRemoveBtn);
+
+  const addPrizeBtn = document.getElementById('addPrizeBtn');
+  if(addPrizeBtn) addPrizeBtn.onclick = ()=>{
+    const list = document.getElementById('prizesList');
+    const div = document.createElement('div');
+    div.className = 'prize-row';
+    div.innerHTML = `
+      <input type="text" class="prizePosition" placeholder="Posição (ex: 1º lugar)">
+      <input type="text" class="prizeDesc" placeholder="Prêmio">
+      <button class="btn ghost small removePrizeBtn" type="button">Remover</button>
+    `;
+    list.appendChild(div);
+    wirePrizeRemoveBtn(div);
+  };
+
+  const savePrizesBtn = document.getElementById('savePrizesBtn');
+  if(savePrizesBtn) savePrizesBtn.onclick = async ()=>{
+    const rows = document.querySelectorAll('#prizesList .prize-row');
+    const list = Array.from(rows).map(row=>({
+      label: row.querySelector('.prizePosition').value.trim(),
+      prize: row.querySelector('.prizeDesc').value.trim()
+    })).filter(p=>p.label || p.prize);
+    const msgEl = document.getElementById('prizesMsg');
+    msgEl.innerHTML = `<div class="msg">Salvando...</div>`;
+    const saved = await savePrizes(list);
+    if(!saved){
+      msgEl.innerHTML = `<div class="msg err">Não deu pra salvar. ${lastStorageError ? escapeHtml(lastStorageError) : 'Tente novamente.'}</div>`;
+      return;
+    }
+    msgEl.innerHTML = `<div class="msg ok">Prêmios salvos!</div>`;
+    setTimeout(()=>{ const m=document.getElementById('prizesMsg'); if(m) m.innerHTML=''; }, 2000);
+  };
+
   document.querySelectorAll('.sendWhatsBtn').forEach(btn=>{
     btn.onclick = ()=>{
       const phone = btn.dataset.phone;
@@ -1366,6 +1531,7 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
     const list = await getParticipants();
     if(list.find(p=>p.phone===phone)){
       msgEl.innerHTML = `<div class="msg err">Já existe um acesso com esse celular — veja a lista abaixo, ela já está aí.</div>`;
+      participantsOverride = list;
       setTimeout(render, 1200);
       return;
     }
@@ -1377,7 +1543,8 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       return;
     }
     msgEl.innerHTML = `<div class="msg ok">Acesso criado! Celular: <b>${formatPhoneDisplay(phone)}</b> · Senha: <b>${pass}</b> — envie para ela.</div>`;
-    setTimeout(render, 900);
+    participantsOverride = list;
+    setTimeout(render, 400);
   };
 
   document.querySelectorAll('.removeBtn').forEach(btn=>{
@@ -1387,6 +1554,7 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       list = list.filter(p=>p.phone!==phone);
       const saved = await saveParticipants(list);
       if(!saved){ alert('Não deu pra salvar. ' + (lastStorageError || 'Tente novamente.')); return; }
+      participantsOverride = list;
       render();
     };
   });
@@ -1429,6 +1597,7 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
           if(c) await setCheckin(phone, day.n, c);
         }));
       }
+      participantsOverride = list;
       render();
     };
   });
@@ -1445,8 +1614,11 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       document.getElementById('tabCheckins').style.display = tab==='checkins' ? 'block' : 'none';
       document.getElementById('tabInstagram').style.display = tab==='instagram' ? 'block' : 'none';
       document.getElementById('tabRelampago').style.display = tab==='relampago' ? 'block' : 'none';
+      document.getElementById('tabPremios').style.display = tab==='premios' ? 'block' : 'none';
       document.getElementById('tabLog').style.display = tab==='log' ? 'block' : 'none';
       if(tab==='log') startLogAutoRefresh(); else stopLogAutoRefresh();
+      if(tab==='ranking') startRankingAutoRefresh(); else stopRankingAutoRefresh();
+      if(tab==='checkins') startFeedAutoRefresh(); else stopFeedAutoRefresh();
     };
   });
 
@@ -1493,6 +1665,54 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
     };
   });
 
+  document.querySelectorAll('.mhead-toggle[data-toggle-day]').forEach(head=>{
+    head.onclick = ()=>{
+      const day = parseInt(head.dataset.toggleDay);
+      const body = document.querySelector(`.mday-body[data-day-body="${day}"]`);
+      const chev = head.querySelector('.chev-btn');
+      if(!body) return;
+      const isOpen = body.style.display !== 'none';
+      body.style.display = isOpen ? 'none' : 'block';
+      if(chev) chev.textContent = isOpen ? 'Editar ▾' : 'Ocultar ▲';
+      if(isOpen) expandedDays.delete(day); else expandedDays.add(day);
+    };
+  });
+
+  async function swapDayOrder(dayA, dayB){
+    const list = await getMissions();
+    const idxA = list.findIndex(d=>d.n===dayA);
+    const idxB = list.findIndex(d=>d.n===dayB);
+    if(idxA<0 || idxB<0) return;
+    list[idxA].n = dayB;
+    list[idxB].n = dayA;
+    list.sort((a,b)=>a.n-b.n);
+    const saved = await saveMissions(list);
+    if(!saved){ alert('Não deu pra salvar. ' + (lastStorageError || 'Tente novamente.')); return; }
+    render();
+  }
+  document.querySelectorAll('.moveDayUpBtn').forEach(btn=>{
+    btn.onclick = async (e)=>{
+      e.stopPropagation();
+      if(btn.disabled) return;
+      const day = parseInt(btn.dataset.day);
+      const list = await getMissions();
+      const idx = list.findIndex(d=>d.n===day);
+      if(idx<=0) return;
+      await swapDayOrder(day, list[idx-1].n);
+    };
+  });
+  document.querySelectorAll('.moveDayDownBtn').forEach(btn=>{
+    btn.onclick = async (e)=>{
+      e.stopPropagation();
+      if(btn.disabled) return;
+      const day = parseInt(btn.dataset.day);
+      const list = await getMissions();
+      const idx = list.findIndex(d=>d.n===day);
+      if(idx<0 || idx>=list.length-1) return;
+      await swapDayOrder(day, list[idx+1].n);
+    };
+  });
+
   document.querySelectorAll('.removeDayBtn').forEach(btn=>{
     btn.onclick = async ()=>{
       const day = parseInt(btn.dataset.day);
@@ -1526,6 +1746,44 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
   };
 
   let adminSelectedDay = missions.length ? missions[0].n : 1;
+  async function refreshCheckinFeed(){
+    const feedEl = document.getElementById('checkinFeed');
+    if(!feedEl) return;
+    if(!participants.length){ feedEl.innerHTML = `<div class="sub">Nenhuma participante cadastrada ainda.</div>`; return; }
+    feedEl.innerHTML = `<div class="sub">Carregando...</div>`;
+    const dayCfg = missions.find(d=>d.n===adminSelectedDay);
+    const rows = await Promise.all(participants.map(async p=>{
+      const c = await getCheckin(p.phone, adminSelectedDay);
+      return {p, c};
+    }));
+    feedEl.innerHTML = rows.map(({p,c})=>{
+      if(!c) return `
+        <div class="feed-row">
+          <div class="feed-name">${escapeHtml(p.name)}</div>
+          <div class="feed-status feed-empty">Sem check-in</div>
+        </div>`;
+      const pts = calcPoints(c, dayCfg);
+      const doneParts = [c.treino?'A':null, c.alimentacao?'B':null, c.tarefa?'C':null].filter(Boolean);
+      const statusText = doneParts.length ? `Tarefas: ${doneParts.join(', ')}` : 'Nenhuma tarefa marcada';
+      return `
+        <div class="feed-row">
+          <div class="feed-name">${escapeHtml(p.name)}${c.checkinDone ? ' 🎉' : ''}</div>
+          <div class="feed-status ${doneParts.length?'':'feed-empty'}">${statusText} · <b>${pts} pts</b></div>
+          ${c.note ? `<div class="feed-note">"${escapeHtml(c.note)}"</div>` : ''}
+          ${(c.photo||c.photoA||c.photoB) ? `<div class="feed-photo-badge">📷 tem foto</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  let feedRefreshTimer = null;
+  function startFeedAutoRefresh(){
+    stopFeedAutoRefresh();
+    feedRefreshTimer = setInterval(refreshCheckinFeed, 20000);
+  }
+  function stopFeedAutoRefresh(){
+    if(feedRefreshTimer){ clearInterval(feedRefreshTimer); feedRefreshTimer = null; }
+  }
+
   async function refreshDetail(){
     const phone = document.getElementById('checkPart').value;
     const detailEl = document.getElementById('checkinDetail');
@@ -1580,8 +1838,10 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       btn.classList.add('active');
       adminSelectedDay = parseInt(btn.dataset.day);
       refreshDetail();
+      refreshCheckinFeed();
     };
   });
+  refreshCheckinFeed();
 
   let igSelectedDay = missions.length ? missions[0].n : 1;
   async function refreshIgDetail(){
