@@ -915,7 +915,6 @@ async function renderParticipant(){
 
         <label>${dayInfo.photo ? 'Foto da Tarefa MOVE (obrigatória hoje)' : 'Foto como comprovação (opcional)'}</label>
         <input type="file" id="cPhoto" accept="image/jpeg,image/png,image/webp,image/*">
-        <div class="sub" style="margin-top:6px; margin-bottom:0;">Aceita JPG, PNG ou WEBP. Fotos do iPhone em formato HEIC não são aceitas — troque para JPEG nas configurações da Câmera ou envie um print.</div>
         <div id="photoPreviewMsg">${c.photo ? `<img src="${c.photo}" class="thumb">` : ''}</div>
 
         <button class="btn small saveTaskBtn" id="saveTarefaBtn">Salvar Tarefa C</button>
@@ -942,6 +941,7 @@ async function renderParticipant(){
       </div>
 
       <div class="footer-note">Check-in até 21h30, salvo se a Move definir outro prazo para a tarefa. A missão do dia seguinte é liberada à noite pela Move.</div>
+      <div class="footer-note" style="font-style:italic;">Fotos aceitas em JPG, PNG ou WEBP. Fotos do iPhone em formato HEIC não são aceitas — troque para JPEG nas configurações da Câmera ou envie um print.</div>
       </div>
 
       <div id="rankingSection" style="${participantTab==='ranking'?'':'display:none;'}">
@@ -1285,7 +1285,13 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
               <span class="chev-btn">${expandedDays.has(d.n) ? 'Ocultar ▲' : 'Editar ▾'}</span>
             </div>
             <div class="mday-body" data-day-body="${d.n}" style="${expandedDays.has(d.n) ? '' : 'display:none;'}">
-            <label>Título da tarefa</label>
+            <label>Número do dia (trocar posição)</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="number" class="mDayNumInput" min="1" value="${d.n}" style="width:90px;">
+              <button class="btn ghost small moveToNumBtn" data-day="${d.n}" type="button" style="flex:1;">Mover para essa posição</button>
+            </div>
+            <div class="sub" style="margin-top:4px; margin-bottom:0;">Troca esse dia inteiro (título, tarefas, pontos) de posição com o dia que você informar. Ex: mudar o Dia 1 para 4 troca ele com o que hoje é o Dia 4.</div>
+            <label style="margin-top:16px;">Título da tarefa</label>
             <input type="text" class="mTitle" value="${escapeHtml(d.title)}">
             <label>Descrição da missão (intro curta)</label>
             <textarea class="mMission">${escapeHtml(d.mission)}</textarea>
@@ -1787,6 +1793,21 @@ Você não parou hoje, e isso já é uma vitória. 👏">${escapeHtml((motivatio
       const idx = list.findIndex(d=>d.n===day);
       if(idx<0 || idx>=list.length-1) return;
       await swapDayOrder(day, list[idx+1].n);
+    };
+  });
+  document.querySelectorAll('.moveToNumBtn').forEach(btn=>{
+    btn.onclick = async (e)=>{
+      e.stopPropagation();
+      const fromDay = parseInt(btn.dataset.day);
+      const cardEl = document.querySelector(`.mission-card[data-day="${fromDay}"]`);
+      const toDay = parseInt(cardEl.querySelector('.mDayNumInput').value, 10);
+      if(!toDay || toDay === fromDay) return;
+      const list = await getMissions();
+      if(!list.find(d=>d.n===toDay)){
+        alert(`Não existe um dia ${toDay}. Escolha o número de um dia que já existe (de 1 a ${list.length}).`);
+        return;
+      }
+      await swapDayOrder(fromDay, toDay);
     };
   });
 
